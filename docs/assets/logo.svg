@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="드라이브 지킴이">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#5B95FF"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs>
+  <path d="M17 6 H83 Q90 6 90 13 V50 C90 75 66 88 50 95 C34 88 10 75 10 50 V13 Q10 6 17 6 Z" fill="url(#g)"/>
+  <path d="M37.5 47 V40 A12.5 12.5 0 0 1 62.5 40 V47" fill="none" stroke="#fff" stroke-width="5"/>
+  <rect x="33" y="47" width="34" height="29" rx="4.5" fill="#fff"/>
+  <circle cx="50" cy="58.5" r="3.8" fill="#2B63E6"/><rect x="48.3" y="58.5" width="3.4" height="9.5" rx="1.2" fill="#2B63E6"/>
+</svg>

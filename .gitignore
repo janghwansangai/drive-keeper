@@ -1,0 +1,21 @@
+# 절대 공유/커밋하면 안 되는 파일 (열쇠·로그인·개인 메모)
+client_secret*.json
+token*.json
+*.gde-part
+security.json
+accounts.json
+HANDOFF.md
+CLAUDE.md
+.claude/
+
+# 파이썬
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 빌드 결과물 (배포 파일은 GitHub Releases에 올린다)
+build/
+dist/
+release/
+*.spec
