@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>따라 하기 — 드라이브 지킴이</title>
+<meta name="description" content="그림을 보며 클릭만 따라 하면 드라이브 지킴이 설치부터 구글 드라이브 연결, 계정 추가까지 끝나요.">
+<meta property="og:title" content="드라이브 지킴이 따라 하기">
+<meta property="og:description" content="한 화면에 한 단계씩. 주황색 동그라미만 따라 누르면 7분 만에 구글 드라이브가 연결돼요.">
+<meta property="og:image" content="https://janghwansangai.github.io/drive-keeper/assets/logo-256.png">
+<meta name="theme-color" content="#0F1E4F">
+<link rel="icon" href="assets/favicon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    --navy: #0F1E4F; --navy2: #13245E; --blue: #2563EB; --blue-d: #1D4ED8; --soft: #EEF4FF;
+    --bg: #EEF2F9; --text: #0F172A; --body: #334155; --muted: #64748B; --line: #E2E8F0;
+    --ok: #059669; --tap: #F97316; --gblue: #0B57D0;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Pretendard", "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--body); line-height: 1.6; -webkit-font-smoothing: antialiased; word-break: keep-all; overflow-x: hidden; }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+  button { font-family: inherit; }
+
+  /* ── 위쪽 줄 · 장 고르기 · 진행 막대 ── */
+  .top { position: sticky; top: 0; z-index: 30; }
+  .head { background: var(--navy); }
+  .head .wrap { height: 56px; display: flex; align-items: center; gap: 14px; }
+  .brand { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 800; font-size: 17px; text-decoration: none; }
+  .brand img { width: 28px; height: 28px; }
+  .brand span { color: #9FB2E6; font-weight: 600; font-size: 14px; }
+  .head .home { margin-left: auto; color: #C7D3F7; font-size: 14.5px; font-weight: 600; text-decoration: none; }
+  .head .home:hover { color: #fff; }
+  .rail { background: #fff; border-bottom: 1px solid var(--line); }
+  .rail .wrap { display: flex; gap: 8px; overflow-x: auto; padding-top: 10px; padding-bottom: 10px; scrollbar-width: none; }
+  .rail .wrap::-webkit-scrollbar { display: none; }
+  .chip { flex: none; display: flex; align-items: center; gap: 9px; padding: 6px 15px 6px 6px; border-radius: 99px; border: 1px solid var(--line); background: #fff; font-weight: 700; font-size: 15px; color: var(--muted); cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
+  .chip:hover { border-color: #BFD3FF; }
+  .chip .n { width: 28px; height: 28px; border-radius: 50%; background: #E2E8F0; color: #475569; display: grid; place-items: center; font-size: 13.5px; font-weight: 800; }
+  .chip small { font-weight: 600; color: #94A3B8; font-size: 12.5px; }
+  .chip.cur { border-color: var(--blue); background: var(--soft); color: var(--navy2); }
+  .chip.cur .n { background: var(--blue); color: #fff; }
+  .chip.done .n { background: var(--ok); color: #fff; font-size: 0; }
+  .chip.done .n::before { content: "✓"; font-size: 15px; }
+  .chip.helpchip { margin-left: auto; }
+  .bar { height: 4px; background: #DCE3EE; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #5B95FF, var(--blue-d)); transition: width .35s ease; }
+
+  /* ── 한 단계 화면 ── */
+  main { padding: 30px 0 130px; }
+  .step { display: none; }
+  .step.on { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.3fr); gap: 40px; align-items: start; animation: rise .35s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .kicker { font-weight: 800; color: var(--blue); font-size: 14.5px; letter-spacing: .01em; }
+  .txt h2 { font-size: clamp(26px, 3vw, 36px); margin: 6px 0 12px; color: var(--text); font-weight: 800; letter-spacing: -0.025em; line-height: 1.25; outline: none; }
+  .say { font-size: 17.5px; color: #475569; margin: 0 0 20px; }
+  ol.do { list-style: none; counter-reset: d; padding: 0; margin: 0 0 22px; display: grid; gap: 14px; }
+  ol.do > li { counter-increment: d; display: grid; grid-template-columns: 38px 1fr; gap: 13px; align-items: start; font-size: 18.5px; color: var(--text); line-height: 1.55; }
+  ol.do > li::before { content: counter(d); width: 38px; height: 38px; border-radius: 12px; background: var(--soft); color: var(--blue-d); font-weight: 800; display: grid; place-items: center; font-size: 17px; margin-top: -3px; }
+  ol.do > li small { display: block; font-size: 15px; color: var(--muted); margin-top: 2px; }
+  .k { display: inline-block; padding: 0 9px; border-radius: 8px; background: #E8F0FE; border: 1px solid #C2D5FB; color: var(--gblue); font-weight: 800; font-size: .9em; line-height: 1.65; white-space: nowrap; }
+  .kb { display: inline-block; border: 1px solid #94A3B8; border-bottom-width: 3px; border-radius: 6px; padding: 0 7px; font-size: .85em; background: #fff; line-height: 1.5; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .go { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(180deg, #3B7BFF, var(--blue-d)); color: #fff; text-decoration: none; font-weight: 800; font-size: 18px; padding: 15px 24px; border-radius: 15px; box-shadow: 0 10px 28px rgba(37,99,235,.35); transition: transform .15s, box-shadow .15s; }
+  .go:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(37,99,235,.45); }
+  .go svg { width: 20px; height: 20px; }
+  .url { display: block; margin: 8px 0 0 4px; font-size: 13.5px; color: var(--muted); word-break: break-all; }
+  .box { border-radius: 14px; padding: 13px 16px; margin: 16px 0 0; font-size: 16px; line-height: 1.55; }
+  .box b:first-child { display: block; margin-bottom: 2px; }
+  .tip { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
+  .warn { background: #FFF7ED; border: 1px solid #FED7AA; color: #9A3412; }
+  .stop { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+  details.help { margin-top: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 0 16px; }
+  details.help summary { cursor: pointer; list-style: none; padding: 13px 0; font-weight: 700; color: var(--text); font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  details.help summary::-webkit-details-marker { display: none; }
+  details.help summary::before { content: "?"; width: 24px; height: 24px; border-radius: 50%; background: #F1F5F9; color: var(--muted); display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+  details.help summary::after { content: "+"; margin-left: auto; color: var(--blue); font-size: 22px; line-height: 1; }
+  details.help[open] summary::after { content: "−"; }
+  details.help ul { margin: 0 0 14px; padding-left: 20px; font-size: 15.5px; }
+  details.help li { margin: 6px 0; }
+
+  /* 그림 칸 */
+  .fig { margin: 0; background: #fff; border-radius: 22px; padding: 26px; box-shadow: 0 1px 0 rgba(15,30,79,.04), 0 18px 50px rgba(15,30,79,.10); container-type: inline-size; }
+  .fig figcaption { margin-top: 14px; font-size: 14px; color: var(--muted); text-align: center; }
+  .stack { display: grid; gap: 18px; }
+  .then { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13.5px; font-weight: 700; }
+  .then::before, .then::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  @container (max-width: 470px) { .pair { grid-template-columns: 1fr; } }
+
+  /* 화면 사진 + 누를 곳 표시 */
+  .shot { position: relative; }
+  .shot img { width: 100%; border-radius: 10px; border: 1px solid #D5DBE5; box-shadow: 0 8px 24px rgba(15,30,79,.10); }
+  .shot.crop { overflow: hidden; border-radius: 10px; border: 1px solid #D5DBE5; box-shadow: 0 8px 24px rgba(15,30,79,.10); aspect-ratio: 16 / 10; }
+  .shot.crop img { position: absolute; max-width: none; border: 0; border-radius: 0; box-shadow: none; }
+  .shot.crop .ring b { z-index: 2; }
+  .ring { position: absolute; border: 3px solid var(--tap); border-radius: 10px; animation: pulse 1.7s ease-out infinite; pointer-events: none; }
+  .ring b, .tap[data-tag]::before { position: absolute; bottom: calc(100% + 9px); left: 50%; transform: translateX(-50%); background: var(--tap); color: #fff; font-size: 13px; font-weight: 800; padding: 4px 11px; border-radius: 99px; white-space: nowrap; box-shadow: 0 4px 12px rgba(249,115,22,.4); font-family: "Pretendard", "Malgun Gothic", sans-serif; letter-spacing: 0; line-height: 1.5; }
+  .ring.b b { bottom: auto; top: calc(100% + 9px); }
+  .ring.l b { bottom: auto; top: 50%; left: auto; right: calc(100% + 10px); transform: translateY(-50%); }
+  .ring.r b { bottom: auto; top: 50%; left: calc(100% + 10px); transform: translateY(-50%); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(249,115,22,.55); } 70% { box-shadow: 0 0 0 12px rgba(249,115,22,0); } 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); } }
+
+  /* 흉내 낸 화면에서 누를 곳 */
+  .tap { position: relative; z-index: 2; border-radius: .55em; box-shadow: 0 0 0 3px var(--tap); animation: pulse2 1.7s ease-out infinite; }
+  @keyframes pulse2 { 0% { box-shadow: 0 0 0 3px var(--tap), 0 0 0 3px rgba(249,115,22,.5); } 70% { box-shadow: 0 0 0 3px var(--tap), 0 0 0 14px rgba(249,115,22,0); } 100% { box-shadow: 0 0 0 3px var(--tap), 0 0 0 3px rgba(249,115,22,0); } }
+  .tap[data-tag]::before { content: attr(data-tag); font-size: max(11px, .9em); }
+  .tap.tb[data-tag]::before { bottom: auto; top: calc(100% + 9px); }
+  .tap.tl[data-tag]::before { bottom: auto; top: 50%; left: auto; right: calc(100% + 10px); transform: translateY(-50%); }
+  .tap.tr[data-tag]::before { bottom: auto; top: 50%; left: calc(100% + 10px); transform: translateY(-50%); }
+  .nope { position: relative; }
+  .nope::after { content: "✕ 이건 아니에요"; position: absolute; top: calc(100% + 7px); left: 50%; transform: translateX(-50%); font-size: max(10.5px, .8em); color: #DC2626; font-weight: 800; white-space: nowrap; font-family: "Pretendard", "Malgun Gothic", sans-serif; }
+  @media (prefers-reduced-motion: reduce) { .ring, .tap, .step.on { animation: none; } }
+
+  /* ── 흉내 낸 화면 (구글·윈도우) ── */
+  .m { font-size: clamp(10px, 2.3cqw, 15px); color: #1F1F1F; font-family: "Segoe UI", "Malgun Gothic", "Pretendard", sans-serif; line-height: 1.45; text-align: left; }
+  .browser { border: 1px solid #D5DBE5; border-radius: 12px; background: #fff; box-shadow: 0 10px 30px rgba(15,30,79,.10); position: relative; }
+  .chrome { background: #E9EEF6; border-radius: 11px 11px 0 0; padding: .55em .8em; display: flex; align-items: center; gap: .7em; border-bottom: 1px solid #D5DBE5; }
+  .dots { display: flex; gap: .35em; } .dots i { width: .72em; height: .72em; border-radius: 50%; background: #C3CBD8; display: block; }
+  .addr { flex: 1; min-width: 0; background: #fff; border-radius: 99px; padding: .3em 1em; color: #5F6368; font-size: .88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .addr b { color: #1F1F1F; font-weight: 600; }
+  .cico { width: 1.9em; height: 1.9em; border-radius: 50%; display: grid; place-items: center; color: #444; font-weight: 700; }
+  .gc-top { display: flex; align-items: center; gap: .8em; padding: .65em 1em; border-bottom: 1px solid #E3E3E3; }
+  .burger { width: 1.1em; height: .8em; background: linear-gradient(#5F6368 0 18%, transparent 18% 41%, #5F6368 41% 59%, transparent 59% 82%, #5F6368 82%); flex: none; }
+  .glogo { font-weight: 600; color: #5F6368; white-space: nowrap; }
+  .glogo i { font-style: normal; } .c1 { color: #4285F4; } .c2 { color: #EA4335; } .c3 { color: #FBBC04; } .c4 { color: #34A853; }
+  .proj { border: 1px solid #C4C7C5; border-radius: .5em; padding: .22em .7em; font-size: .9em; white-space: nowrap; display: inline-flex; align-items: center; gap: .35em; }
+  .proj::before { content: ""; width: .8em; height: .8em; border-radius: .2em; background: #A8C7FA; }
+  .gsearch { flex: 1; min-width: 0; background: #E9EEF6; border-radius: 99px; padding: .4em 1em; color: #6B7280; font-size: .88em; white-space: nowrap; overflow: hidden; }
+  .gc-body { padding: 1.2em 1.4em 1.5em; }
+  .gh { font-size: 1.4em; font-weight: 400; margin: 0 0 .8em; color: #1F1F1F; }
+  .gsub { font-size: 1.05em; font-weight: 600; margin: 1em 0 .4em; }
+  .gmut { color: #5F6368; font-size: .92em; }
+  .field { border: 1px solid #747775; border-radius: .4em; padding: .62em .85em; position: relative; margin: 1.05em 0 .95em; color: #1F1F1F; background: #fff; }
+  .field > label { position: absolute; top: -.72em; left: .65em; background: #fff; padding: 0 .3em; font-size: .78em; color: #444746; line-height: 1.3; }
+  .field.on { border: 2px solid var(--gblue); } .field.on > label { color: var(--gblue); }
+  .field .caret { float: right; color: #444; }
+  .gbtn { display: inline-block; background: var(--gblue); color: #fff; border-radius: 99px; padding: .5em 1.4em; font-weight: 600; white-space: nowrap; }
+  .gbtn.out { background: #fff; color: var(--gblue); border: 1px solid #747775; }
+  .gbtn.txt { background: none; color: var(--gblue); padding: .5em .5em; }
+  .gbtn.gray { background: #E3E3E3; color: #8A8A8A; }
+  .row { display: flex; align-items: center; gap: .8em; flex-wrap: wrap; }
+  .right { margin-left: auto; }
+  .radio { display: inline-block; width: 1.05em; height: 1.05em; border-radius: 50%; border: .14em solid #444746; vertical-align: -.18em; margin-right: .4em; }
+  .radio.on { border-color: var(--gblue); background: radial-gradient(var(--gblue) 40%, #fff 46%); }
+  .cbox { display: inline-block; width: 1.05em; height: 1.05em; border-radius: .2em; border: .14em solid #444746; vertical-align: -.18em; margin-right: .45em; flex: none; }
+  .cbox.on { border-color: var(--gblue); background: var(--gblue); position: relative; }
+  .cbox.on::after { content: ""; position: absolute; left: .26em; top: .05em; width: .3em; height: .55em; border: solid #fff; border-width: 0 .14em .14em 0; transform: rotate(45deg); }
+  .menu { border-radius: .5em; box-shadow: 0 .3em 1.4em rgba(0,0,0,.18); background: #fff; padding: .35em 0; }
+  .menu > div { padding: .45em 1.1em; }
+  .menu > div.sel { background: #E8F0FE; font-weight: 600; }
+  .dialog { background: #fff; border-radius: 1.4em; box-shadow: 0 .4em 2em rgba(0,0,0,.2); padding: 1.4em 1.5em 1.2em; }
+  .dialog .gh { font-size: 1.3em; margin-bottom: .5em; }
+  .masked { background: #F1F3F4; border-radius: .35em; padding: .35em .7em; font-family: Consolas, monospace; font-size: .85em; color: #444; margin: .25em 0 .7em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; }
+  @container (max-width: 470px) { .panels { grid-template-columns: 1fr; } }
+  .panel { border: 1px solid #DADCE0; border-radius: .8em; padding: .9em 1em 1em; position: relative; background: #fff; }
+  .panel .pn { position: absolute; top: -.8em; left: .8em; background: var(--blue); color: #fff; width: 1.7em; height: 1.7em; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .9em; font-family: "Pretendard", sans-serif; }
+  .panel .pt { font-weight: 700; margin: .2em 0 .5em; }
+  .panel .field { margin: .95em 0 .7em; }
+  /* 구글 로그인 쪽 화면 */
+  .gacc { padding: 1.6em 1.8em 1.6em; }
+  .gacc .glogo2 { font-weight: 700; font-size: 1.2em; letter-spacing: -.01em; margin-bottom: .6em; }
+  .gacc .gh { font-size: 1.45em; margin-bottom: .4em; }
+  .acct { display: flex; align-items: center; gap: .8em; padding: .7em .6em; border-bottom: 1px solid #E3E3E3; }
+  .ava { width: 2.1em; height: 2.1em; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; flex: none; background: #7C3AED; }
+  .ava.o { background: #fff; border: 1px solid #C4C7C5; color: #444; }
+  .warnicon { width: 2.4em; height: 2.4em; border-radius: 50%; background: #FCE8E6; color: #C5221F; display: grid; place-items: center; font-weight: 800; font-size: 1.1em; margin-bottom: .7em; }
+  /* 윈도우 화면 */
+  .win { border: 1px solid #CBD2DC; border-radius: 10px; background: #fff; box-shadow: 0 10px 30px rgba(15,30,79,.12); position: relative; }
+  .wtitle { display: flex; align-items: center; gap: .6em; padding: .5em .8em; background: #F3F3F3; border-radius: 9px 9px 0 0; font-size: .9em; color: #333; }
+  .wtitle .wbtns { margin-left: auto; color: #666; letter-spacing: 1.2em; }
+  .wpath { display: flex; align-items: center; gap: .5em; padding: .45em .8em; border-bottom: 1px solid #E5E5E5; font-size: .9em; color: #333; background: #FAFAFA; }
+  .wpath .crumb { background: #fff; border: 1px solid #E1E1E1; border-radius: .35em; padding: .15em .6em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .flist { padding: .4em .5em .7em; }
+  .frow { display: grid; grid-template-columns: 1.8em 1fr auto; align-items: center; gap: .55em; padding: .32em .5em; border-radius: .35em; }
+  .frow.sel { background: #CCE4F7; }
+  .frow .fk { color: #666; font-size: .85em; white-space: nowrap; }
+  .fo { display: inline-block; width: 1.35em; height: 1.02em; background: #F6C344; border-radius: .14em; position: relative; margin-top: .25em; }
+  .fo::before { content: ""; position: absolute; left: 0; top: -.2em; width: .62em; height: .3em; background: #E0A526; border-radius: .12em .12em 0 0; }
+  .fo.zip::after { content: ""; position: absolute; left: .56em; top: 0; width: .22em; height: 100%; background: repeating-linear-gradient(#4B5563 0 .12em, #9CA3AF .12em .24em); }
+  .fl { display: inline-block; width: 1.02em; height: 1.28em; background: #fff; border: 1px solid #9AA3AF; border-radius: .12em; position: relative; }
+  .fl.cmd { background: #1F2937; border-color: #111; }
+  .fl.cmd::after { content: ">_"; position: absolute; inset: 0; color: #fff; font-size: .45em; display: grid; place-items: center; font-family: Consolas, monospace; }
+  .fl.pdf::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: #DC2626; }
+  .fl.app { background: linear-gradient(160deg, #5B95FF, #1D4ED8); border-color: #1D4ED8; border-radius: .25em; }
+  .ctx { position: absolute; background: #fff; border: 1px solid #D4D4D4; border-radius: .6em; box-shadow: 0 .5em 1.6em rgba(0,0,0,.18); padding: .35em; min-width: 11em; z-index: 3; }
+  .ctx > div { padding: .4em .9em; border-radius: .35em; white-space: nowrap; }
+  .msgbox { background: #fff; border: 1px solid #CBD2DC; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .msgbox .mbody { padding: 1em 1.2em; display: flex; gap: .8em; }
+  .msgbox .mfoot { background: #F3F3F3; padding: .7em 1em; display: flex; justify-content: flex-end; gap: .6em; border-radius: 0 0 8px 8px; }
+  .wbtn { border: 1px solid #C4C4C4; background: #FDFDFD; border-radius: .3em; padding: .3em 1.4em; white-space: nowrap; }
+  .wbtn.def { border-color: #005FB8; background: #005FB8; color: #fff; }
+  .mi { width: 1.8em; height: 1.8em; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; flex: none; background: #0067C0; }
+  .smart { background: #0B5CAD; color: #fff; border-radius: 8px; padding: 1.2em 1.4em; }
+  .smart .h { font-size: 1.5em; font-weight: 300; margin-bottom: .5em; }
+  .smart u { cursor: default; }
+  .smart .acts { margin-top: 1.1em; display: flex; justify-content: flex-end; gap: .6em; }
+  .smart .acts span { border: 1px solid #fff; padding: .3em 1.3em; }
+  .dlfly { position: absolute; right: .6em; top: 2.9em; width: 62%; background: #fff; border-radius: .7em; box-shadow: 0 .5em 1.8em rgba(0,0,0,.2); padding: .7em .8em; z-index: 3; }
+  .dlrow { display: flex; align-items: center; gap: .6em; padding: .45em .3em; }
+  .dlrow .nm { font-weight: 600; } .dlrow .sz { color: #5F6368; font-size: .85em; }
+  .dlrow .ic2 { margin-left: auto; width: 1.9em; height: 1.9em; display: grid; place-items: center; border-radius: .4em; }
+  .minisite { background: linear-gradient(160deg, #0B1640, #13245E 60%, #1B3A9A); color: #DDE6FF; padding: 2.2em 1.6em 3.4em; border-radius: 0 0 11px 11px; }
+  .minisite .t { color: #fff; font-weight: 800; font-size: 1.6em; line-height: 1.25; margin: .4em 0 .8em; font-family: "Pretendard", sans-serif; }
+  .minisite .b { display: inline-block; background: linear-gradient(180deg, #3B7BFF, #1D4ED8); color: #fff; font-weight: 800; border-radius: .7em; padding: .65em 1.2em; font-family: "Pretendard", sans-serif; }
+  .desk { background: linear-gradient(135deg, #1E3A8A, #60A5FA); border-radius: 10px; padding: 1.2em; display: flex; gap: 1.4em; color: #fff; text-align: center; font-size: .85em; }
+  .desk .di { width: 5.5em; } .desk .di img { width: 3em; margin: 0 auto .3em; }
+
+  /* ── 첫 화면 · 끝 화면 ── */
+  .hello h2 { font-size: clamp(30px, 4vw, 46px); }
+  .ready { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+  .ready span { background: #fff; border: 1px solid var(--line); border-radius: 99px; padding: 6px 13px; font-size: 15px; font-weight: 600; color: var(--text); }
+  .paths { display: grid; gap: 12px; margin-bottom: 20px; }
+  .path { display: flex; align-items: center; gap: 14px; text-align: left; background: #fff; border: 1.5px solid var(--line); border-radius: 16px; padding: 15px 18px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; font-size: 16px; color: var(--body); width: 100%; }
+  .path:hover { border-color: #93B4FD; box-shadow: 0 10px 26px rgba(37,99,235,.13); transform: translateY(-1px); }
+  .path .pi { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; flex: none; background: var(--soft); }
+  .path b { display: block; color: var(--text); font-size: 18px; }
+  .path .ar { margin-left: auto; color: var(--blue); font-size: 22px; font-weight: 800; }
+  .path.main { border-color: var(--blue); background: linear-gradient(160deg, #F4F8FF, #fff); }
+  .path.main .pi { background: linear-gradient(180deg, #3B7BFF, var(--blue-d)); color: #fff; }
+  .resume { display: none; margin-bottom: 14px; }
+  .map { display: grid; gap: 12px; }
+  .stage { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 16px; background: #F7F9FD; border: 1px solid var(--line); }
+  .stage .sn { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(180deg, #3B7BFF, var(--blue-d)); color: #fff; font-weight: 800; font-size: 20px; display: grid; place-items: center; flex: none; box-shadow: 0 8px 18px rgba(37,99,235,.3); }
+  .stage b { display: block; color: var(--text); font-size: 18px; }
+  .stage span { font-size: 15px; color: var(--muted); }
+  .stage .tm { margin-left: auto; font-size: 13px; font-weight: 800; color: var(--blue-d); background: var(--soft); padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
+  .legend { display: grid; gap: 10px; margin-top: 18px; font-size: 15px; }
+  .legend div { display: flex; align-items: center; gap: 12px; }
+  .legend .lt { width: 44px; height: 26px; border-radius: 8px; box-shadow: 0 0 0 3px var(--tap); flex: none; }
+  .cheer { display: inline-block; font-size: 54px; animation: pop .6s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { from { transform: scale(.3) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .choices { display: grid; gap: 10px; margin-top: 18px; }
+
+  /* 막혔을 때 */
+  .faq details { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 0 18px; margin-bottom: 10px; }
+  .faq summary { cursor: pointer; list-style: none; padding: 15px 0; font-weight: 700; font-size: 16.5px; color: var(--text); display: flex; gap: 12px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; margin-left: auto; color: var(--blue); font-size: 22px; line-height: 1; }
+  .faq details[open] summary::after { content: "−"; }
+  .faq details p { margin: 0 0 15px; font-size: 15.5px; }
+
+  /* ── 아래쪽 이동 줄 ── */
+  .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: rgba(255,255,255,.92); backdrop-filter: saturate(160%) blur(12px); -webkit-backdrop-filter: saturate(160%) blur(12px); border-top: 1px solid var(--line); }
+  .nav .wrap { display: flex; align-items: center; gap: 14px; height: 82px; }
+  .nav .count { font-size: 14.5px; color: var(--muted); font-weight: 700; }
+  .nav .count b { color: var(--text); }
+  .prev { border: 1px solid var(--line); background: #fff; color: var(--body); font-weight: 700; font-size: 16px; padding: 14px 20px; border-radius: 14px; cursor: pointer; }
+  .prev:hover { border-color: #BFD3FF; }
+  .next { margin-left: auto; border: 0; background: linear-gradient(180deg, #3B7BFF, var(--blue-d)); color: #fff; font-weight: 800; font-size: 18px; padding: 16px 30px; border-radius: 15px; cursor: pointer; box-shadow: 0 10px 26px rgba(37,99,235,.35); transition: transform .15s; }
+  .next:hover { transform: translateY(-2px); }
+  .prev[hidden], .next[hidden] { display: none; }
+  .toast { position: fixed; left: 50%; bottom: 100px; transform: translate(-50%, 20px); background: var(--navy); color: #fff; font-weight: 700; padding: 12px 20px; border-radius: 99px; box-shadow: 0 12px 30px rgba(15,30,79,.35); opacity: 0; transition: opacity .25s, transform .25s; z-index: 40; pointer-events: none; font-size: 15.5px; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .print-only { display: none; }
+
+  @media screen and (max-width: 900px) {
+    .step.on { grid-template-columns: 1fr; gap: 0; }
+    .fig { position: static; padding: 18px; order: -1; margin: 6px 0 24px; }
+    .step.on .txt { display: contents; }
+    .step.on .txt > .head1 { order: -2; }
+    main { padding-top: 18px; }
+    .chip small { display: none; }
+  }
+  @media screen and (max-width: 560px) {
+    .wrap { padding: 0 16px; }
+    .head .home { display: none; }
+    ol.do > li { font-size: 17px; grid-template-columns: 32px 1fr; gap: 11px; }
+    ol.do > li::before { width: 32px; height: 32px; font-size: 15px; border-radius: 10px; }
+    .nav .wrap { height: 74px; gap: 10px; }
+    .nav .count { display: none; }
+    .prev { padding: 13px 15px; }
+    .next { flex: 1; padding: 15px 18px; font-size: 17px; }
+    .go { width: 100%; justify-content: center; }
+  }
+
+  /* ── 인쇄 (PDF 설명서) ── */
+  @media print {
+    @page { size: A4; margin: 12mm 12mm 13mm; }
+    body { background: #fff; font-size: 10.5pt; }
+    .top, .nav, .toast, .noprint, .step.hello { display: none !important; }
+    .print-only { display: block; }
+    main { padding: 0; }
+    .wrap { max-width: none; padding: 0; }
+    .step, .step.on { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 7mm; align-items: start; animation: none; break-inside: avoid; page-break-inside: avoid; padding: 5mm 0 6mm; border-bottom: 1px dashed #CBD5E1; }
+    .step.last-in-ch { border-bottom: 0; }
+    .step.faqstep { display: block !important; }
+    .txt h2 { font-size: 17pt; margin: 1mm 0 2mm; }
+    .kicker { font-size: 9.5pt; }
+    .say { font-size: 10.5pt; margin-bottom: 3mm; }
+    ol.do { gap: 2.2mm; margin-bottom: 3mm; }
+    ol.do > li { font-size: 10.8pt; grid-template-columns: 7mm 1fr; gap: 2.5mm; }
+    ol.do > li::before { width: 6.5mm; height: 6.5mm; font-size: 9.5pt; border-radius: 2mm; margin-top: 0; }
+    ol.do > li small { font-size: 9pt; }
+    .go { box-shadow: none; padding: 1.6mm 3.5mm; font-size: 10pt; border-radius: 2.5mm; }
+    .url { font-size: 8.5pt; margin-top: 1mm; }
+    .box { font-size: 9.5pt; padding: 2mm 3mm; margin-top: 2.5mm; border-radius: 2.5mm; }
+    details.help { padding: 0 3mm; margin-top: 2.5mm; }
+    details.help summary { padding: 1.5mm 0; font-size: 9.5pt; }
+    details.help summary::after { content: ""; }
+    details.help ul { font-size: 9pt; margin-bottom: 2mm; }
+    .fig { position: static; box-shadow: none; border: 1px solid #E2E8F0; padding: 4mm; border-radius: 4mm; }
+    .fig figcaption { font-size: 8.5pt; margin-top: 2mm; }
+    .ring, .tap { animation: none; }
+    .ring b, .tap[data-tag]::before { font-size: 7.5pt; padding: .4mm 2mm; box-shadow: none; }
+    .m { font-size: 7.6pt; }
+    .ch-head { break-before: page; page-break-before: always; display: flex !important; align-items: center; gap: 5mm; padding: 4mm 6mm; margin: 0 0 2mm; border-radius: 4mm; background: linear-gradient(160deg, #0B1640, #13245E 60%, #1B3A9A); color: #DDE6FF; }
+    .ch-head .cn { width: 13mm; height: 13mm; border-radius: 3.5mm; background: #fff; color: var(--blue-d); font-weight: 800; font-size: 18pt; display: grid; place-items: center; flex: none; }
+    .ch-head h1 { color: #fff; margin: 0; font-size: 19pt; }
+    .ch-head p { margin: 0; font-size: 10pt; color: #C9D6FB; }
+    .faq details { break-inside: avoid; padding: 0 4mm; margin-bottom: 2mm; }
+    .faq summary { padding: 2mm 0; font-size: 10.5pt; }
+    .faq summary::after { content: ""; }
+    .faq details p { font-size: 9.5pt; margin-bottom: 2.5mm; }
+    .cheer { animation: none; font-size: 28pt; }
+    .choices { display: none; }
+    .cover { height: 268mm; border-radius: 6mm; padding: 22mm 16mm; background: radial-gradient(900px 500px at 90% -10%, rgba(91,149,255,.35), transparent 60%), linear-gradient(160deg, #0B1640 0%, #13245E 55%, #1B3A9A 100%); color: #DDE6FF; position: relative; overflow: hidden; }
+    .cover h1 { color: #fff; font-size: 38pt; margin: 8mm 0 3mm; letter-spacing: -.02em; }
+    .cover .sub { font-size: 16pt; color: #C7D7FF; line-height: 1.5; }
+    .cover .badges { margin-top: 8mm; display: flex; flex-wrap: wrap; gap: 3mm; }
+    .cover .badges span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 1.5mm 4.5mm; font-size: 11pt; }
+    .cover img.s { width: 100%; max-height: 92mm; object-fit: cover; object-position: top left; margin-top: 12mm; border-radius: 3mm; box-shadow: 0 10mm 25mm rgba(0,0,0,.4); }
+    .cover .foot { position: absolute; left: 16mm; bottom: 12mm; font-size: 10.5pt; color: #AFC0F0; }
+    .intro { break-before: page; page-break-before: always; }
+    .intro h1 { color: var(--navy2); font-size: 22pt; margin: 0 0 4mm; }
+    .intro .lead { font-size: 12.5pt; color: #334155; }
+    .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin: 5mm 0; }
+    .vs > div { border-radius: 4mm; padding: 4mm 5mm; font-size: 11pt; }
+    .vs h3 { margin: 0 0 2mm; font-size: 13pt; color: var(--text); }
+    .vs .bad { background: #FEF2F2; border: 1px solid #FECACA; } .vs .good { background: #EFF6FF; border: 1px solid #BFDBFE; }
+    .toc { display: grid; gap: 3mm; margin-top: 6mm; }
+    .toc div { display: flex; align-items: center; gap: 4mm; padding: 3mm 4mm; border: 1px solid #E2E8F0; border-radius: 3mm; font-size: 12pt; }
+    .toc .cn { width: 9mm; height: 9mm; border-radius: 2.5mm; background: var(--blue); color: #fff; font-weight: 800; display: grid; place-items: center; }
+    .toc small { margin-left: auto; color: var(--muted); font-size: 10pt; }
+    .legend2 { margin-top: 6mm; display: flex; gap: 6mm; font-size: 11pt; align-items: center; }
+    .legend2 .lt { display: inline-block; width: 12mm; height: 6mm; border-radius: 2mm; box-shadow: 0 0 0 2px var(--tap); vertical-align: middle; margin-right: 2mm; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top noprint">
+  <div class="head"><div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/logo.svg" alt="">드라이브 지킴이 <span>따라 하기</span></a>
+    <a class="home" href="index.html">← 홈페이지</a>
+  </div></div>
+  <nav class="rail" aria-label="장 고르기"><div class="wrap" id="rail">
+    <button class="chip" data-go="a1" data-ch="install"><span class="n">1</span>설치하기 <small>1분</small></button>
+    <button class="chip" data-go="b1" data-ch="key"><span class="n">2</span>열쇠 만들기 <small>5분</small></button>
+    <button class="chip" data-go="c1" data-ch="connect"><span class="n">3</span>연결하기 <small>1분</small></button>
+    <button class="chip" data-go="d1" data-ch="use"><span class="n">4</span>써 보기</button>
+    <button class="chip" data-go="e1" data-ch="add"><span class="n">5</span>계정 추가</button>
+    <button class="chip helpchip" data-go="help" data-ch="help"><span class="n">?</span>막혔어요</button>
+  </div></nav>
+  <div class="bar"><i id="barfill"></i></div>
+</div>
+
+<!-- PDF 설명서용 표지·소개 (화면에는 안 보임) -->
+<section class="print-only">
+  <div class="cover">
+    <img src="assets/logo.svg" width="96" alt="">
+    <h1>드라이브 지킴이<br>따라 하기 설명서</h1>
+    <div class="sub">그림 속 <b style="color:#FDBA74">주황색 동그라미</b>만 따라 누르면<br>설치부터 구글 드라이브 연결까지 약 7분!</div>
+    <div class="badges"><span>🔒 비밀번호 잠금</span><span>🛡️ 지우기 차단</span><span>⏪ 타임머신</span><span>💾 저장하면 자동 업로드</span></div>
+    <img class="s" src="assets/shots/main.png" alt="">
+    <div class="foot">홈페이지에서 한 단계씩 보기: janghwansangai.github.io/drive-keeper/start.html</div>
+  </div>
+  <div class="intro">
+    <h1>드라이브 지킴이는 어떤 프로그램인가요?</h1>
+    <p class="lead">구글 드라이브를 컴퓨터에 연결해 쓰면 편하지만, <b>비밀번호가 없어서</b> 그 컴퓨터를 쓰는 누구나 내 파일을 열고, 고치고, 지울 수 있어요. 드라이브 지킴이는 이 빈틈을 막아 주는 <b>지킴이</b>예요.</p>
+    <div class="vs">
+      <div class="bad"><h3>😟 드라이브를 그냥 연결하면</h3>• 비밀번호 없이 누구나 열어요<br>• 실수로 지우면 한꺼번에 사라질 수 있어요</div>
+      <div class="good"><h3>😊 드라이브 지킴이를 쓰면</h3>• 비밀번호를 넣어야 열려요<br>• 이 프로그램으로는 파일을 지울 수 없어요<br>• 저장하면 드라이브에 저절로 올라가요</div>
+    </div>
+    <h2 style="color:var(--blue-d);margin:7mm 0 0">이렇게 따라 해요</h2>
+    <div class="toc">
+      <div><span class="cn">1</span>설치하기 <small>약 1분</small></div>
+      <div><span class="cn">2</span>내 구글 열쇠 만들기 <small>처음 한 번 · 약 5분</small></div>
+      <div><span class="cn">3</span>프로그램과 구글 드라이브 연결하기 <small>약 1분</small></div>
+      <div><span class="cn">4</span>써 보기: 파일 저장 · 비밀번호 · 되살리기</div>
+      <div><span class="cn">5</span>계정 하나 더 넣기 (예: 학교 계정)</div>
+      <div><span class="cn">?</span>막혔을 때</div>
+    </div>
+    <div class="legend2"><span><span class="lt"></span>주황색 테두리 = 여기를 눌러요</span><span><span class="k">계속</span> = 화면에 보이는 단추 이름</span></div>
+    <div class="box warn" style="margin-top:7mm"><b>이것만 기억해요</b>이 컴퓨터에 <b>Google Drive 데스크톱</b>이 켜져 있으면 G: 드라이브는 여전히 비밀번호 없이 열려요. 작업 표시줄의 구글 드라이브 아이콘 → 설정 → <b>종료</b>, 시작할 때 자동 실행도 꺼 주세요.</div>
+  </div>
+</section>
+
+<main><div class="wrap" id="steps">
+
+<!-- ───────── 첫 화면 ───────── -->
+<section class="step hello" id="start" data-ch="start">
+  <div class="txt">
+    <div class="head1">
+      <div class="kicker">드라이브 지킴이 따라 하기</div>
+      <h2 tabindex="-1">그대로 따라 하면<br>끝나요 😊</h2>
+    </div>
+    <p class="say">한 화면에 하나씩 보여 드려요. 그림 속 <b style="color:var(--tap)">주황색 동그라미</b>를 누르면 돼요. 처음부터 끝까지 <b>약 7분</b>이면 구글 드라이브가 연결돼요.</p>
+    <div class="ready"><span>🖥️ Windows 10·11 컴퓨터</span><span>📧 구글 계정 (Gmail)</span><span>🌐 인터넷</span></div>
+    <button class="path resume" id="resume" data-go=""><span class="pi">↻</span><span><b id="resumeT">이어서 하기</b><span id="resumeS"></span></span><span class="ar">→</span></button>
+    <div class="paths">
+      <button class="path main" data-go="a1"><span class="pi">1</span><span><b>처음이에요</b>설치부터 차근차근 (약 7분)</span><span class="ar">→</span></button>
+      <button class="path" data-go="b1"><span class="pi">🔑</span><span><b>설치는 했어요</b>구글 열쇠 만들기부터</span><span class="ar">→</span></button>
+      <button class="path" data-go="c1"><span class="pi">🔗</span><span><b>열쇠도 받았어요</b>프로그램에 넣고 연결하기</span><span class="ar">→</span></button>
+      <button class="path" data-go="e1"><span class="pi">👥</span><span><b>계정을 하나 더 넣고 싶어요</b>예: 학교 계정 추가하기</span><span class="ar">→</span></button>
+    </div>
+    <div class="box tip"><b>💡 화면을 나란히 놓으면 더 쉬워요</b>이 안내 창에서 <span class="kb">⊞ Win</span> + <span class="kb">←</span>, 구글 창에서 <span class="kb">⊞ Win</span> + <span class="kb">→</span> 를 누르면 두 창이 반씩 나란히 놓여요.</div>
+  </div>
+  <figure class="fig">
+    <div class="map">
+      <div class="stage"><span class="sn">1</span><span><b>설치하기</b><span>내려받고, 압축 풀고, ‘설치하기’ 두 번 누르기</span></span><span class="tm">1분</span></div>
+      <div class="stage"><span class="sn">2</span><span><b>내 구글 열쇠 만들기</b><span>구글 화면에서 단추 몇 개 누르기 (처음 한 번만)</span></span><span class="tm">5분</span></div>
+      <div class="stage"><span class="sn">3</span><span><b>연결하기</b><span>열쇠 넣고 구글 로그인</span></span><span class="tm">1분</span></div>
+      <div class="then">끝나면 이런 화면이 돼요</div>
+      <div class="shot"><img src="assets/shots/main.png" alt="드라이브 지킴이에 내 드라이브 파일이 보이는 화면"></div>
+    </div>
+    <div class="legend">
+      <div><span class="lt"></span><span><b>주황색 테두리</b> = 여기를 눌러요</span></div>
+      <div><span class="k">계속</span><span><b>파란 글씨 상자</b> = 화면에 보이는 단추 이름</span></div>
+    </div>
+  </figure>
+</section>
+
+<!-- ───────── 1. 설치하기 ───────── -->
+<header class="ch-head print-only" data-ch="install"><span class="cn">1</span><div><h1>설치하기</h1><p>약 1분 · 관리자 권한이 필요 없어요</p></div></header>
+
+<section class="step" id="a1" data-ch="install">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">프로그램 내려받기</h2></div>
+    <ol class="do">
+      <li><span>아래 파란 <span class="k">내려받기</span> 단추를 눌러요.</span></li>
+      <li><span>다 받아지면 오른쪽 위에 뜨는 창에서 <b>📁 폴더 모양</b>을 눌러요.<small>창이 안 보이면 키보드 <span class="kb">Ctrl</span> + <span class="kb">J</span></small></span></li>
+    </ol>
+    <a class="go" href="https://github.com/janghwansangai/drive-keeper/releases/latest/download/DriveKeeper.zip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      내려받기 (약 20MB)</a>
+    <span class="url">github.com/janghwansangai/drive-keeper → DriveKeeper.zip</span>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>janghwansangai.github.io</b>/drive-keeper</span><span class="cico">⤓</span></div>
+      <div class="minisite">
+        <div style="font-weight:700;color:#fff">🛡️ 드라이브 지킴이</div>
+        <div class="t">구글 드라이브에<br>비밀번호 잠금을</div>
+        <span class="b tap tb" data-tag="① 내려받기">⤓ 무료로 내려받기</span>
+      </div>
+      <div class="dlfly">
+        <div style="font-weight:700;margin-bottom:.3em">다운로드</div>
+        <div class="dlrow"><span class="fo zip"></span><span><span class="nm">DriveKeeper.zip</span><br><span class="sz">20.0MB · 완료</span></span><span class="ic2 tap tb" data-tag="② 폴더 모양">📁</span></div>
+      </div>
+    </div>
+    <figcaption>Edge·크롬 모두 비슷해요</figcaption>
+  </figure>
+</section>
+
+<section class="step" id="a2" data-ch="install">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">압축 풀기</h2></div>
+    <ol class="do">
+      <li><span><b>DriveKeeper</b> 파일 위에서 마우스 <b>오른쪽</b> 단추를 눌러요.</span></li>
+      <li><span><span class="k">모두 압축 풀기...</span>를 눌러요.</span></li>
+      <li><span>새 창에서 <span class="k">압축 풀기</span>를 눌러요.</span></li>
+    </ol>
+    <div class="box tip"><b>💡 압축을 꼭 풀어야 해요</b>압축 파일 안에서 바로 누르면 설치가 안 돼요.</div>
+    <details class="help"><summary>메뉴에 ‘모두 압축 풀기’가 없어요</summary><ul><li>파일을 한 번 눌러 고른 뒤, 창 위쪽의 <span class="k">모두 압축 풀기</span>를 눌러요.</li><li>반디집·알집이 깔려 있으면 <b>여기에 풀기</b>를 눌러도 돼요.</li></ul></details>
+  </div>
+  <figure class="fig">
+    <div class="pair">
+      <div class="m win" style="min-height:13em">
+        <div class="wtitle"><span class="fo"></span>다운로드<span class="wbtns">—▢✕</span></div>
+        <div class="flist">
+          <div class="frow sel"><span class="fo zip"></span><span>DriveKeeper</span><span class="fk">압축(ZIP)</span></div>
+          <div class="frow"><span class="fl"></span><span>사진.jpg</span><span class="fk"></span></div>
+        </div>
+        <div class="ctx" style="left:22%;top:5.2em">
+          <div>열기</div>
+          <div class="tap tl" data-tag="①">모두 압축 풀기...</div>
+          <div>시작 화면에 고정</div>
+          <div>속성</div>
+        </div>
+      </div>
+      <div class="m msgbox">
+        <div class="wtitle" style="border-radius:8px 8px 0 0">압축(ZIP) 폴더 풀기</div>
+        <div style="padding:.9em 1.1em">
+          <div class="gmut">파일을 아래 폴더에 풀기:</div>
+          <div class="field" style="margin:.5em 0 .7em">C:\Users\…\Downloads\DriveKeeper</div>
+          <div><span class="cbox on"></span>완료되면 파일 표시</div>
+        </div>
+        <div class="mfoot"><span class="wbtn def tap tb" data-tag="② 압축 풀기">압축 풀기</span><span class="wbtn">취소</span></div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="a3" data-ch="install">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">‘설치하기’ 두 번 누르기</h2></div>
+    <ol class="do">
+      <li><span>새로 열린 창에서 <b>📁 드라이브 지킴이</b> 폴더를 두 번 눌러 들어가요.</span></li>
+      <li><span><b>설치하기</b>를 <b>두 번</b> 눌러요.<small>까만 창이 잠깐 보여도 괜찮아요.</small></span></li>
+      <li><span>아래 같은 경고 창이 뜨면 <span class="k">추가 정보</span> → <span class="k">실행</span>.<small>또는 ‘보안 경고’ 창이면 <span class="k">실행</span>. 아무 창도 안 뜨면 넘어가요.</small></span></li>
+    </ol>
+    <div class="box tip"><b>💡 왜 경고가 뜨나요?</b>개인이 만든 무료 프로그램이라 전자 서명이 없어서 나오는 안내예요. 이 홈페이지에서 받은 파일이면 안심하세요.</div>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="m win">
+        <div class="wtitle"><span class="fo"></span>드라이브 지킴이<span class="wbtns">—▢✕</span></div>
+        <div class="wpath">‹ › <span class="crumb">다운로드 › DriveKeeper › 드라이브 지킴이</span></div>
+        <div class="flist">
+          <div class="frow"><span class="fo"></span><span>app</span><span class="fk">파일 폴더</span></div>
+          <div class="frow"><span class="fl pdf"></span><span>드라이브 지킴이 사용설명서</span><span class="fk">PDF</span></div>
+          <div class="frow"><span class="fl"></span><span>드라이브 지킴이 설명서 (AI용)</span><span class="fk">MD 파일</span></div>
+          <div class="frow sel tap tl" data-tag="두 번 눌러요"><span class="fl cmd"></span><span><b>설치하기</b></span><span class="fk">Windows 명령어 스크립트</span></div>
+          <div class="frow"><span class="fl cmd"></span><span>지우기</span><span class="fk">Windows 명령어 스크립트</span></div>
+          <div class="frow"><span class="fl"></span><span>처음 읽어 주세요</span><span class="fk">텍스트 문서</span></div>
+        </div>
+      </div>
+      <div class="then">이런 창이 뜨면</div>
+      <div class="m smart">
+        <div class="h">Windows의 PC 보호</div>
+        Microsoft Defender SmartScreen에서 인식할 수 없는 앱의 시작을 차단했습니다.<br><br>
+        <u class="tap tr" data-tag="① 추가 정보" style="padding:0 .2em">추가 정보</u>
+        <div class="acts"><span class="tap tb" data-tag="② 실행">실행</span><span>실행 안 함</span></div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="a4" data-ch="install">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">설치 끝! 프로그램 켜기</h2></div>
+    <ol class="do">
+      <li><span>‘설치가 끝났어요!’ 창에서 <span class="k">예</span>를 눌러요.</span></li>
+      <li><span>드라이브 지킴이와 <b>시작 도우미</b> 창이 떠요. 그대로 두고 <b>다음 단계</b>로 가요.</span></li>
+    </ol>
+    <div class="box tip"><b>💡 다음부터는</b>바탕화면의 <b>드라이브 지킴이</b> 아이콘을 두 번 누르면 켜져요. 시작 메뉴에도 있어요.</div>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="m msgbox" style="max-width:30em;margin:0 auto;width:100%">
+        <div class="wtitle" style="border-radius:8px 8px 0 0">드라이브 지킴이 설치</div>
+        <div class="mbody"><span class="mi">i</span><span>설치가 끝났어요! 🎉<br><br>바탕화면의 '드라이브 지킴이'를 두 번 누르면 시작해요.<br>지금 바로 켤까요?</span></div>
+        <div class="mfoot"><span class="wbtn def tap tl" data-tag="예">예(Y)</span><span class="wbtn">아니요(N)</span></div>
+      </div>
+      <div class="then">바탕화면에 아이콘이 생겨요</div>
+      <div class="m desk"><div class="di"><img src="assets/logo.svg" alt="">드라이브 지킴이</div><div class="di" style="opacity:.55"><div style="font-size:2.4em;line-height:1.3">🗑️</div>휴지통</div></div>
+    </div>
+  </figure>
+</section>
+
+<!-- ───────── 2. 열쇠 만들기 ───────── -->
+<header class="ch-head print-only" data-ch="key"><span class="cn">2</span><div><h1>내 구글 열쇠 만들기</h1><p>처음 한 번 · 약 5분 · 무료 · 모두 <b style="color:#fff">내 드라이브 구글 계정</b>으로 해요</p></div></header>
+
+<section class="step" id="b1" data-ch="key">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">구글 클라우드에서<br>‘프로젝트’ 만들기</h2></div>
+    <p class="say">드라이브 지킴이는 내 드라이브를 <b>나만의 열쇠</b>로만 열어요. 열쇠는 구글에서 무료로 만들어요. 단추를 누르면 구글 화면이 새 탭으로 열려요.</p>
+    <ol class="do">
+      <li><span>아래 <span class="k">구글 클라우드 열기</span>를 눌러요. 로그인 화면이 나오면 <b>내 드라이브 계정</b>으로 로그인해요.</span></li>
+      <li><span>처음이면 약관 창이 떠요: 국가 <b>대한민국</b> → 체크 ☑ → <span class="k">동의 및 계속</span></span></li>
+      <li><span>프로젝트 이름 칸에 <b>drive-keeper</b> 라고 써요.</span></li>
+      <li><span>파란 <span class="k">만들기</span>를 누르고 10초쯤 기다려요.</span></li>
+    </ol>
+    <a class="go" href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">구글 클라우드 열기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <span class="url">console.cloud.google.com/projectcreate</span>
+    <details class="help"><summary>잘 안 되나요?</summary><ul>
+      <li>학교·회사 계정이라 만들 수 없다고 나오면 → <b>개인 Gmail</b>로 만들어도 돼요. 학교 계정은 나중에 ⑤장처럼 추가해요.</li>
+      <li>‘프로젝트를 더 만들 수 없어요’ → 예전에 만든 프로젝트를 골라서 다음 단계로 가도 돼요.</li>
+    </ul></details>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>console.cloud.google.com</b>/projectcreate</span></div>
+      <div class="gc-top"><span class="burger"></span><span class="glogo"><i class="c1">G</i><i class="c2">o</i><i class="c3">o</i><i class="c1">g</i><i class="c4">l</i><i class="c2">e</i> Cloud</span><span class="gsearch">검색</span></div>
+      <div class="gc-body">
+        <div class="gh">새 프로젝트</div>
+        <div class="field on"><label>프로젝트 이름 *</label>drive-keeper<span style="border-right:2px solid var(--gblue);margin-left:1px"></span></div>
+        <div class="gmut" style="margin:-.4em 0 .9em">프로젝트 ID: drive-keeper-123456</div>
+        <div class="field"><label>위치 *</label>조직 없음</div>
+        <div class="row" style="margin-top:1.3em"><span class="gbtn tap tb" data-tag="만들기">만들기</span><span class="gbtn txt">취소</span></div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="b2" data-ch="key">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">구글 드라이브 기능 켜기</h2></div>
+    <ol class="do">
+      <li><span>아래 <span class="k">드라이브 기능 화면 열기</span>를 눌러요.</span></li>
+      <li><span>맨 위 네모 칸에 <b>drive-keeper</b>가 보이는지 확인해요.<small>다른 이름이면 그 칸을 눌러 drive-keeper를 골라요.</small></span></li>
+      <li><span>파란 <span class="k">사용</span>을 눌러요. 화면이 바뀌면 성공!</span></li>
+    </ol>
+    <a class="go" href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener">드라이브 기능 화면 열기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <span class="url">console.cloud.google.com/apis/library/drive.googleapis.com</span>
+    <details class="help"><summary>잘 안 되나요?</summary><ul>
+      <li><span class="k">사용</span> 대신 <span class="k">관리</span>만 보이면 → 이미 켜져 있어요. 다음으로 가요.</li>
+    </ul></details>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>console.cloud.google.com</b>/apis/library/drive.googleapis.com</span></div>
+      <div class="gc-top"><span class="burger"></span><span class="glogo"><i class="c1">G</i><i class="c2">o</i><i class="c3">o</i><i class="c1">g</i><i class="c4">l</i><i class="c2">e</i> Cloud</span><span class="proj tap tb" data-tag="① drive-keeper 인지 확인">drive-keeper ▾</span><span class="gsearch">검색</span></div>
+      <div class="gc-body" style="padding-top:2.2em">
+        <div class="row" style="gap:1.1em;align-items:flex-start">
+          <div style="width:3.4em;height:3em;flex:none;background:conic-gradient(from 210deg,#0F9D58 0 33%,#FFC107 0 66%,#4285F4 0);clip-path:polygon(33% 0,67% 0,100% 58%,83% 100%,17% 100%,0 58%);"></div>
+          <div><div class="gh" style="margin:0 0 .1em">Google Drive API</div><div class="gmut">Google Enterprise API</div><div style="margin:.4em 0 1.1em">Google Drive의 파일을 만들고 관리해요</div>
+            <span class="gbtn tap tb" data-tag="② 사용">사용</span> <span class="gbtn txt">API 사용해 보기</span></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="b3" data-ch="key">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">앱 이름 정하기<br><small style="font-size:.55em;color:var(--muted);font-weight:700">카드 4장을 차례로</small></h2></div>
+    <ol class="do">
+      <li><span>아래 단추로 화면을 열고 <span class="k">시작하기</span>. 앱 이름에 <b>드라이브 지킴이</b>, 이메일은 <b>내 이메일</b>을 골라요 → <span class="k">다음</span></span></li>
+      <li><span>대상: <b>외부</b>를 골라요 → <span class="k">다음</span></span></li>
+      <li><span>연락처: <b>내 이메일</b>을 써요 → <span class="k">다음</span></span></li>
+      <li><span>동의 칸에 체크 ☑ → <span class="k">계속</span> → <span class="k">만들기</span></span></li>
+    </ol>
+    <a class="go" href="https://console.cloud.google.com/auth/overview" target="_blank" rel="noopener">앱 이름 화면 열기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <span class="url">console.cloud.google.com/auth/overview</span>
+    <details class="help"><summary>잘 안 되나요?</summary><ul>
+      <li><span class="k">시작하기</span>가 없고 다른 화면이 나오면 → 이미 해 둔 거예요. 다음으로 가요.</li>
+      <li>맨 위 프로젝트 이름이 <b>drive-keeper</b>인지 확인해요.</li>
+    </ul></details>
+  </div>
+  <figure class="fig">
+    <div class="m panels">
+      <div class="panel"><span class="pn">1</span><div class="pt">앱 정보</div>
+        <div class="field on"><label>앱 이름 *</label>드라이브 지킴이</div>
+        <div class="field"><label>사용자 지원 이메일 *</label>내 이메일 <span class="caret">▾</span></div>
+        <span class="gbtn tap tr" data-tag="다음">다음</span></div>
+      <div class="panel"><span class="pn">2</span><div class="pt">대상</div>
+        <div style="margin:.6em 0 .5em;color:#9AA0A6"><span class="radio"></span>내부</div>
+        <div class="tap tr" data-tag="외부" style="margin:0 0 1.15em;padding:.2em .3em;display:inline-block"><span class="radio on"></span><b>외부</b></div><br>
+        <span class="gbtn">다음</span></div>
+      <div class="panel"><span class="pn">3</span><div class="pt">연락처 정보</div>
+        <div class="field on"><label>이메일 주소 *</label>myname@gmail.com</div>
+        <span class="gbtn tap tr" data-tag="다음">다음</span></div>
+      <div class="panel"><span class="pn">4</span><div class="pt">완료</div>
+        <div class="row tap" style="align-items:flex-start;gap:0;margin:.5em 0 1em;flex-wrap:nowrap;padding:.2em"><span class="cbox on"></span><span style="font-size:.9em;padding-left:.3em">Google API 서비스: 사용자 데이터 정책에 동의합니다.</span></div>
+        <span class="gbtn">계속</span> <span class="gbtn tap tb" data-tag="만들기">만들기</span></div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="b4" data-ch="key">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">나를 ‘테스트 사용자’로 넣기</h2></div>
+    <ol class="do">
+      <li><span>아래 단추로 화면을 열고 조금 내려 <b>테스트 사용자</b>를 찾아요.</span></li>
+      <li><span><span class="k">+ Add users</span> (또는 <span class="k">+ 사용자 추가</span>)를 눌러요.</span></li>
+      <li><span><b>내 Gmail 주소</b>를 쓰고 <span class="k">저장</span>을 눌러요.</span></li>
+    </ol>
+    <a class="go" href="https://console.cloud.google.com/auth/audience" target="_blank" rel="noopener">테스트 사용자 화면 열기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <span class="url">console.cloud.google.com/auth/audience</span>
+    <div class="box tip"><b>👥 학교 계정도 쓸 건가요?</b>지금 그 주소도 함께 써 두세요 (한 줄에 하나씩). 그러면 나중에 <b>⑤ 계정 추가</b>가 바로 돼요.</div>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>console.cloud.google.com</b>/auth/audience</span></div>
+      <div class="gc-top"><span class="burger"></span><span class="glogo">Google 인증 플랫폼</span><span class="proj">drive-keeper ▾</span></div>
+      <div class="gc-body">
+        <div class="gh">대상</div>
+        <div class="gsub" style="margin-top:0">게시 상태</div><div class="gmut">테스트 중</div>
+        <div class="gsub">테스트 사용자</div>
+        <span class="gbtn out tap tr" data-tag="① 눌러요">+ Add users</span>
+        <div class="dialog" style="margin-top:1.2em">
+          <div class="gh">사용자 추가</div>
+          <div class="field on"><label>이메일 *</label>myname@gmail.com<br><span style="color:#9AA0A6">school@example.com ← 학교 계정(있으면)</span></div>
+          <div class="row"><span class="right gbtn txt">취소</span><span class="gbtn tap tb" data-tag="② 저장">저장</span></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="b5" data-ch="key">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">열쇠 만들기</h2></div>
+    <ol class="do">
+      <li><span>아래 단추로 화면을 열어요.</span></li>
+      <li><span><b>애플리케이션 유형</b> 칸을 눌러 <span class="k">데스크톱 앱</span>을 골라요.<small>꼭 ‘데스크톱 앱’이어야 해요!</small></span></li>
+      <li><span>이름은 그대로 두고 파란 <span class="k">만들기</span>를 눌러요.</span></li>
+    </ol>
+    <a class="go" href="https://console.cloud.google.com/auth/clients/create" target="_blank" rel="noopener">열쇠 만들기 화면 열기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <span class="url">console.cloud.google.com/auth/clients/create</span>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>console.cloud.google.com</b>/auth/clients/create</span></div>
+      <div class="gc-top"><span class="burger"></span><span class="glogo">Google 인증 플랫폼</span><span class="proj">drive-keeper ▾</span></div>
+      <div class="gc-body">
+        <div class="gh">OAuth 클라이언트 ID 만들기</div>
+        <div class="field on"><label>애플리케이션 유형 *</label>데스크톱 앱 <span class="caret">▴</span></div>
+        <div class="menu" style="margin:-.6em 0 .9em">
+          <div style="color:#5F6368">웹 애플리케이션</div><div style="color:#5F6368">Android</div><div style="color:#5F6368">iOS</div>
+          <div class="sel tap tr" data-tag="① 데스크톱 앱">데스크톱 앱</div>
+        </div>
+        <div class="field"><label>이름 *</label>데스크톱 클라이언트 1</div>
+        <div class="row"><span class="gbtn tap tb" data-tag="② 만들기">만들기</span><span class="gbtn txt">취소</span></div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="b6" data-ch="key">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">열쇠 파일 받기 ⭐</h2></div>
+    <ol class="do">
+      <li><span>‘OAuth 클라이언트 생성됨’ 창에서 <span class="k">JSON 다운로드</span>를 눌러요.</span></li>
+      <li><span>파일이 받아지면 <span class="k">확인</span>을 눌러 창을 닫아요.</span></li>
+    </ol>
+    <div class="box stop"><b>⚠️ 이 창에서만 받을 수 있어요!</b>창을 그냥 닫았다면 걱정 말고 앞 단계(열쇠 만들기)를 한 번 더 하면 돼요.</div>
+    <div class="box tip"><b>🎉 열쇠 완성!</b><b>다운로드</b> 폴더에 <b>client_secret_….json</b> 파일이 생겼어요. 이 파일은 다른 사람에게 주지 마세요.</div>
+  </div>
+  <figure class="fig">
+    <div class="m" style="background:#F1F3F4;border-radius:12px;padding:1.6em 1.4em">
+      <div class="dialog" style="max-width:30em;margin:0 auto">
+        <div class="gh">OAuth 클라이언트 생성됨</div>
+        <div class="gmut">클라이언트 ID</div><div class="masked">123456789012-abcd…apps.googleusercontent.com</div>
+        <div class="gmut">클라이언트 보안 비밀번호</div><div class="masked">GOCSPX-••••••••••••••••</div>
+        <div class="row" style="margin:.4em 0 1.2em"><span class="gbtn out tap tr" data-tag="① JSON 다운로드">⤓ JSON 다운로드</span></div>
+        <div class="row"><span class="right gbtn txt">확인</span></div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<!-- ───────── 3. 연결하기 ───────── -->
+<header class="ch-head print-only" data-ch="connect"><span class="cn">3</span><div><h1>프로그램과 구글 드라이브 연결하기</h1><p>약 1분 · 처음 한 번만</p></div></header>
+
+<section class="step" id="c1" data-ch="connect">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">열쇠 넣기</h2></div>
+    <ol class="do">
+      <li><span>드라이브 지킴이로 돌아가요. <b>시작 도우미</b> 창이 보여요.<small>안 보이면 맨 위 <span class="k">도움말</span> → <b>시작 도우미</b></small></span></li>
+      <li><span>2번 칸의 <span class="k">다운로드 폴더에서 찾기</span>를 눌러요.</span></li>
+      <li><span>‘✓ 열쇠가 들어 있어요’가 나오면 성공!</span></li>
+    </ol>
+    <details class="help"><summary>잘 안 되나요?</summary><ul>
+      <li>‘열쇠 파일을 찾지 못했어요’ → <b>열쇠 파일 받기</b> 단계에서 <span class="k">JSON 다운로드</span>를 눌렀는지 확인해요.</li>
+      <li>‘웹 애플리케이션 열쇠예요’ → 열쇠 만들기에서 <b>데스크톱 앱</b>으로 다시 만들어요.</li>
+      <li>다른 곳에 저장했다면 <span class="k">직접 고르기...</span>로 그 파일을 골라요.</li>
+    </ul></details>
+  </div>
+  <figure class="fig">
+    <div class="shot" data-spots="setup_find|다운로드 폴더에서 찾기|b"><img src="assets/shots/setup_first.png" alt="드라이브 지킴이 시작 도우미 창"></div>
+  </figure>
+</section>
+
+<section class="step" id="c2" data-ch="connect">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">로그인하기</h2></div>
+    <ol class="do">
+      <li><span>3번 칸의 <span class="k">로그인하기</span>를 눌러요.</span></li>
+      <li><span>브라우저가 열리면 <b>열쇠를 만든 내 계정</b>을 눌러요.</span></li>
+    </ol>
+    <div class="box tip"><b>💡 5분 안에 해 주세요</b>시간이 지나면 다시 <span class="k">로그인하기</span>를 누르면 돼요.</div>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="shot" data-spots="setup_login|로그인하기|b"><img src="assets/shots/setup_key.png" alt="열쇠를 넣은 뒤의 시작 도우미 창"></div>
+      <div class="then">브라우저에서</div>
+      <div class="m browser">
+        <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
+        <div class="gacc">
+          <div class="glogo2"><i class="c1" style="font-style:normal">G</i> 계정 선택</div>
+          <div class="gmut" style="margin-bottom:.7em">드라이브 지킴이(으)로 이동</div>
+          <div class="acct tap tb" data-tag="내 계정"><span class="ava">T</span><span><b>선생님</b><br><span class="gmut">teacher@example.com</span></span></div>
+          <div class="acct"><span class="ava o">+</span><span>다른 계정 사용</span></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="c3" data-ch="connect">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">‘확인하지 않은 앱’이 나오면<br><span style="color:var(--tap)">왼쪽 [계속]</span></h2></div>
+    <ol class="do">
+      <li><span>파란 단추 말고, <b>왼쪽 아래 글자</b> <span class="k">계속</span>을 눌러요.</span></li>
+    </ol>
+    <div class="box tip"><b>💡 안심하세요</b>내가 만든 열쇠라서 나오는 안내예요. 내 파일은 내 컴퓨터와 내 구글 드라이브 사이에서만 오가요.</div>
+    <details class="help" open><summary>화면이 조금 달라요</summary><ul>
+      <li><span class="k">계속</span>이 없고 <span class="k">고급</span>이 있으면 → <span class="k">고급</span> → <b>‘…(으)로 이동(안전하지 않음)’</b>을 눌러요.</li>
+      <li>빨간 <b>‘액세스 차단됨’</b>이 나오면 → 열쇠 만들기의 <b>테스트 사용자</b>에 이 이메일을 넣지 않았어요. 넣고 다시 해요.</li>
+    </ul></details>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
+      <div class="gacc">
+        <div class="warnicon">!</div>
+        <div class="gh">Google에서 확인하지 않은 앱</div>
+        <div class="gmut" style="margin-bottom:1.6em">앱에서 Google 계정의 민감한 정보에 대한 액세스를 요청합니다. 개발자(myname@gmail.com)가 Google에 앱 인증을 요청하기 전에는 이 앱을 사용하지 마세요.</div>
+        <div class="row" style="padding-bottom:1.4em"><span class="gbtn txt tap tb" data-tag="여기! 계속">계속</span><span class="right gbtn nope">안전한 페이지로 돌아가기</span></div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="c4" data-ch="connect">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">허락하기</h2></div>
+    <ol class="do">
+      <li><span>체크 칸이 있으면 <b>체크 ☑</b> 해요.</span></li>
+      <li><span>파란 <span class="k">계속</span>을 눌러요.</span></li>
+      <li><span>‘로그인이 완료되었습니다’가 나오면 브라우저 탭을 닫고 드라이브 지킴이로 돌아가요.</span></li>
+    </ol>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="m browser">
+        <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
+        <div class="gacc">
+          <div class="gh">드라이브 지킴이에서 내 Google 계정에 액세스하려고 합니다</div>
+          <div class="gmut" style="margin-bottom:.9em">teacher@example.com</div>
+          <div class="row tap tb" data-tag="① 체크" style="flex-wrap:nowrap;align-items:flex-start;padding:.7em .3em;border-top:1px solid #E3E3E3;border-bottom:1px solid #E3E3E3;margin-bottom:2.2em"><span class="cbox on"></span><span>Google Drive의 모든 파일 보기, 수정, 생성, 삭제</span></div>
+          <div class="row"><span class="right gbtn out">취소</span><span class="gbtn tap tb" data-tag="② 계속">계속</span></div>
+        </div>
+      </div>
+      <div class="then">그다음</div>
+      <div class="m browser">
+        <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>localhost</b></span></div>
+        <div style="padding:1.4em 1.8em;font-family:'Malgun Gothic',sans-serif"><div style="font-size:1.35em;font-weight:700;margin-bottom:.4em">로그인이 완료되었습니다.</div>이 창을 닫고 드라이브 지킴이로 돌아가세요.</div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="c5" data-ch="connect">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><span class="cheer">🎉</span><h2 tabindex="-1">연결 끝! 정말 잘했어요</h2></div>
+    <p class="say">왼쪽에 <b>내 계정</b>, 가운데에 <b>내 드라이브 파일</b>이 보이면 성공이에요. 이제 구글 드라이브를 안전하게 쓸 수 있어요.</p>
+    <div class="box tip"><b>💡 7일에 한 번 로그인 창이 떠요</b>내 열쇠가 ‘테스트 중’이라서 생기는 구글 규칙이에요. 브라우저가 저절로 열리면 다시 내 계정을 고르면 돼요.</div>
+    <div class="choices noprint">
+      <button class="path main" data-go="d1"><span class="pi">✏️</span><span><b>써 보기</b>파일 저장 · 비밀번호 · 되살리기</span><span class="ar">→</span></button>
+      <button class="path" data-go="e1"><span class="pi">👥</span><span><b>계정 하나 더 넣기</b>예: 학교 계정</span><span class="ar">→</span></button>
+    </div>
+  </div>
+  <figure class="fig">
+    <div class="shot"><img src="assets/shots/main.png" alt="드라이브 지킴이에 내 드라이브가 연결된 화면"></div>
+  </figure>
+</section>
+
+<!-- ───────── 4. 써 보기 ───────── -->
+<header class="ch-head print-only" data-ch="use"><span class="cn">4</span><div><h1>써 보기</h1><p>파일 고치기 · 비밀번호 잠금 · 지운 파일 되살리기</p></div></header>
+
+<section class="step" id="d1" data-ch="use">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">파일 열고 저장하기</h2></div>
+    <ol class="do">
+      <li><span>파일을 <b>두 번</b> 눌러요. 한글·Word·Excel이 열려요.</span></li>
+      <li><span>고치고 <span class="kb">Ctrl</span> + <span class="kb">S</span> 로 저장해요.</span></li>
+      <li><span>아래 ‘편집 중인 파일’에 <b style="color:var(--ok)">드라이브에 저장됨</b>이 나오면 끝!<small>다른 컴퓨터에서도 바뀐 내용이 보여요.</small></span></li>
+    </ol>
+    <div class="box tip"><b>💡 다른 이름으로 저장해도 돼요</b>처음 뜨는 폴더에 저장하면 그 파일도 드라이브의 같은 폴더에 올라가요.</div>
+  </div>
+  <figure class="fig">
+    <div class="shot" data-crop="17,14,83,70" data-spots="main_file|① 두 번 눌러요|b;main_saved|② 드라이브에 저장됨|b"><img src="assets/shots/main.png" alt="파일 목록과 편집 중인 파일 칸"></div>
+  </figure>
+</section>
+
+<section class="step" id="d2" data-ch="use">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">비밀번호 걸기 🔒</h2></div>
+    <ol class="do">
+      <li><span>맨 위 <span class="k">보안 설정</span>을 눌러요.</span></li>
+      <li><span>비밀번호를 <b>두 번</b> 써요. (4자 이상)</span></li>
+      <li><span>잠글 때를 골라요: 켤 때 · 몇 분 안 쓸 때 · 절전에서 깰 때</span></li>
+      <li><span><span class="k">저장</span>. 이제 <span class="k">잠금</span>이나 <span class="kb">Ctrl</span> + <span class="kb">L</span> 로 바로 잠가요.</span></li>
+    </ol>
+    <div class="box warn"><b>비밀번호를 잊으면?</b>잠금 화면의 <b>비밀번호를 잊었어요</b> → 내 구글 계정으로 로그인하면 새로 정할 수 있어요.</div>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="shot" data-crop="44,0,56,32" data-spots="main_security|① 보안 설정|b"><img src="assets/shots/main.png" alt="맨 위의 보안 설정 단추"></div>
+      <div class="then">이런 창이 열려요</div>
+      <div class="shot" style="max-width:300px;margin:0 auto;width:100%"><img src="assets/shots/security.png" alt="보안 설정 창"></div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="d3" data-ch="use">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">지운 파일 되살리기 ⏪</h2></div>
+    <ol class="do">
+      <li><span>오른쪽 위 <span class="k">타임머신</span>을 눌러요.</span></li>
+      <li><span>되살릴 파일을 골라요. 안 보이면 이름 일부를 쓰고 <span class="k">찾기</span>.</span></li>
+      <li><span><span class="k">선택한 항목 되살리기</span>를 누르면 원래 폴더로 돌아와요!</span></li>
+    </ol>
+    <div class="box tip"><b>💡 잘못 저장했을 때</b>파일을 오른쪽 클릭 → <b>이전 버전 보기</b>로 예전 내용으로 되돌릴 수 있어요. 지운 파일은 30일 동안 되살릴 수 있어요.</div>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="shot" data-crop="44,0,56,32" data-spots="main_tm|① 타임머신|b"><img src="assets/shots/main.png" alt="오른쪽 위의 타임머신 단추"></div>
+      <div class="then">이런 창이 열려요</div>
+      <div class="shot"><img src="assets/shots/tm_trash.png" alt="타임머신 창의 지운 파일 목록"></div>
+    </div>
+  </figure>
+</section>
+
+<!-- ───────── 5. 계정 추가 ───────── -->
+<header class="ch-head print-only" data-ch="add"><span class="cn">5</span><div><h1>계정 하나 더 넣기</h1><p>예시: 내 계정(teacher@example.com)에 학교 계정(school@example.com)을 더해요</p></div></header>
+
+<section class="step" id="e1" data-ch="add">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">학교 계정을<br>테스트 사용자로 넣기</h2></div>
+    <p class="say"><b>예시</b> · 내 계정 <b>teacher@example.com</b>에 학교 계정 <b>school@example.com</b>을 더해 볼게요.</p>
+    <ol class="do">
+      <li><span>아래 단추로 화면을 열어요. 맨 위가 <b>열쇠를 만든 내 계정</b>인지 확인해요.</span></li>
+      <li><span><span class="k">+ Add users</span> → <b>school@example.com</b> → <span class="k">저장</span></span></li>
+    </ol>
+    <a class="go" href="https://console.cloud.google.com/auth/audience" target="_blank" rel="noopener">테스트 사용자 화면 열기
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <span class="url">console.cloud.google.com/auth/audience</span>
+    <div class="box tip"><b>💡 처음에 같이 넣어 두었다면</b>이 단계는 건너뛰고 다음으로 가요.</div>
+  </div>
+  <figure class="fig">
+    <div class="m browser">
+      <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>console.cloud.google.com</b>/auth/audience</span><span class="cico" style="background:#7C3AED;color:#fff;font-size:.85em">T</span></div>
+      <div class="gc-top"><span class="burger"></span><span class="glogo">Google 인증 플랫폼</span><span class="proj">drive-keeper ▾</span></div>
+      <div class="gc-body">
+        <div class="gh">대상</div>
+        <div class="gsub" style="margin-top:0">테스트 사용자</div>
+        <span class="gbtn out tap tr" data-tag="① 눌러요">+ Add users</span>
+        <div style="margin:.8em 0 0;border-top:1px solid #E3E3E3">
+          <div style="padding:.5em .2em;border-bottom:1px solid #E3E3E3">teacher@example.com</div>
+        </div>
+        <div class="dialog" style="margin-top:1.1em">
+          <div class="gh">사용자 추가</div>
+          <div class="field on"><label>이메일 *</label>school@example.com</div>
+          <div class="row"><span class="right gbtn txt">취소</span><span class="gbtn tap tb" data-tag="② 저장">저장</span></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="e2" data-ch="add">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">[+ 계정 추가] 누르기</h2></div>
+    <ol class="do">
+      <li><span>드라이브 지킴이 왼쪽 목록 맨 아래 <span class="k">+ 계정 추가</span>를 눌러요.</span></li>
+      <li><span>브라우저가 열리면 <span class="k">다른 계정 사용</span>을 눌러요.<small>목록에 학교 계정이 있으면 그걸 바로 눌러요.</small></span></li>
+      <li><span>학교 계정 주소와 비밀번호로 로그인해요.</span></li>
+    </ol>
+  </div>
+  <figure class="fig">
+    <div class="stack">
+      <div class="shot" data-crop="0,6,52,46" data-spots="main_add|① + 계정 추가|r"><img src="assets/shots/main.png" alt="왼쪽 목록 맨 아래의 + 계정 추가"></div>
+      <div class="then">브라우저에서</div>
+      <div class="m browser">
+        <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
+        <div class="gacc">
+          <div class="glogo2"><i class="c1" style="font-style:normal">G</i> 계정 선택</div>
+          <div class="acct"><span class="ava">T</span><span><b>선생님</b><br><span class="gmut">teacher@example.com</span></span></div>
+          <div class="acct tap tb" data-tag="② 다른 계정 사용"><span class="ava o">+</span><span>다른 계정 사용</span></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="e3" data-ch="add">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">[계속] → 체크 → [계속]</h2></div>
+    <p class="say">③ 연결하기에서 본 화면과 똑같아요.</p>
+    <ol class="do">
+      <li><span>‘확인하지 않은 앱’ → <b>왼쪽 글자</b> <span class="k">계속</span></span></li>
+      <li><span>체크 칸 ☑ → 파란 <span class="k">계속</span></span></li>
+      <li><span>‘로그인이 완료되었습니다’ → 브라우저 탭 닫기</span></li>
+    </ol>
+    <details class="help"><summary>빨간 ‘액세스 차단됨’이 나와요</summary><ul>
+      <li>앞 단계에서 학교 계정을 <b>테스트 사용자</b>로 넣었는지, 주소에 오타가 없는지 확인해요.</li>
+      <li>‘관리자가 차단함’이면 학교 관리자에게 허용을 부탁하거나 개인 계정을 써요.</li>
+    </ul></details>
+  </div>
+  <figure class="fig">
+    <div class="pair">
+      <div class="m browser">
+        <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
+        <div class="gacc" style="padding:1.2em 1.2em 1.4em">
+          <div class="warnicon">!</div>
+          <div class="gh" style="font-size:1.15em">Google에서 확인하지 않은 앱</div>
+          <div class="gmut" style="margin-bottom:1.2em">개발자가 Google에 앱 인증을 요청하기 전에는…</div>
+          <div class="row" style="padding-bottom:1.3em"><span class="gbtn txt tap tb" data-tag="① 계속">계속</span><span class="right gbtn nope" style="font-size:.85em">안전한 페이지로…</span></div>
+        </div>
+      </div>
+      <div class="m browser">
+        <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
+        <div class="gacc" style="padding:1.2em 1.2em 1.4em">
+          <div class="gh" style="font-size:1.1em">드라이브 지킴이에서 액세스하려고 합니다</div>
+          <div class="gmut" style="margin-bottom:.8em">school@example.com</div>
+          <div class="row tap tl" data-tag="②" style="flex-wrap:nowrap;align-items:flex-start;margin-bottom:1.2em;padding:.2em"><span class="cbox on"></span><span style="font-size:.9em">Google Drive의 모든 파일 보기, 수정…</span></div>
+          <div class="row"><span class="right gbtn tap tb" data-tag="③ 계속">계속</span></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</section>
+
+<section class="step" id="e4" data-ch="add">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><span class="cheer">👥</span><h2 tabindex="-1">계정이 두 개가 됐어요!</h2></div>
+    <ol class="do">
+      <li><span>왼쪽 목록에서 계정을 골라 써요. 두 계정의 파일은 섞이지 않아요.</span></li>
+      <li><span>맨 위에 지금 보고 있는 계정이 보여요.</span></li>
+    </ol>
+    <div class="box tip"><b>💡 계정을 빼고 싶으면</b>왼쪽 계정 이름에서 <b>오른쪽 클릭</b> → <b>계정 제거</b>. 이 컴퓨터의 로그인 정보만 지워지고, 드라이브의 파일은 그대로예요.</div>
+  </div>
+  <figure class="fig">
+    <div class="shot" data-crop="0,0,62,58" data-spots="two_new|새로 넣은 학교 계정|r"><img src="assets/shots/two_accounts.png" alt="왼쪽 목록에 계정 두 개가 보이는 화면"></div>
+  </figure>
+</section>
+
+<!-- ───────── 막혔을 때 ───────── -->
+<header class="ch-head print-only" data-ch="help"><span class="cn">?</span><div><h1>막혔을 때</h1><p>자주 묻는 것들을 모았어요</p></div></header>
+
+<section class="step faqstep" id="help" data-ch="help">
+  <div class="txt" style="grid-column:1/-1;max-width:900px">
+    <div class="head1"><div class="kicker">막혔을 때</div><h2 tabindex="-1">이럴 땐 이렇게 해요</h2></div>
+    <div class="faq">
+      <details><summary>‘앱 열쇠(client_secret.json)가 아직 없어요’ 창이 떠요</summary><p><a href="#key">② 열쇠 만들기</a>를 하고, 프로그램의 시작 도우미에서 <span class="k">다운로드 폴더에서 찾기</span>를 눌러요. 시작 도우미는 맨 위 <span class="k">도움말</span> → <b>시작 도우미</b>로 열어요.</p></details>
+      <details><summary>‘열쇠 파일을 찾지 못했어요’라고 나와요</summary><p>열쇠 파일 받기 단계에서 <span class="k">JSON 다운로드</span>를 눌러야 파일이 생겨요. 놓쳤다면 <a href="#b5">열쇠 만들기</a>를 한 번 더 하면 돼요. 다른 폴더에 저장했다면 <span class="k">직접 고르기...</span>로 골라요.</p></details>
+      <details><summary>로그인할 때 빨간 ‘액세스 차단됨’이 나와요</summary><p>그 이메일이 <b>테스트 사용자</b>에 없어서 그래요. <a href="#b4">테스트 사용자 넣기</a>에서 주소를 넣고(오타 주의!) 다시 로그인해요.</p></details>
+      <details><summary>‘웹 애플리케이션 열쇠예요’라고 나와요</summary><p>열쇠를 만들 때 유형을 <b>데스크톱 앱</b>으로 골라야 해요. <a href="#b5">열쇠 만들기</a>를 다시 해요.</p></details>
+      <details><summary>‘구글 드라이브 권한을 받지 못했어요’라고 나와요</summary><p>허락하기 화면에서 체크 칸을 비워 두고 <span class="k">계속</span>을 눌렀어요. 다시 로그인하고 <b>체크 ☑</b> 한 뒤 <span class="k">계속</span>을 눌러요.</p></details>
+      <details><summary>학교 계정에서 ‘관리자가 차단함’이 나와요</summary><p>학교에서 외부 앱을 막아 둔 경우예요. 학교 관리자에게 허용을 부탁하거나 개인 Gmail 계정을 써요.</p></details>
+      <details><summary>7일마다 로그인 창이 떠요</summary><p>정상이에요. 내가 만든 열쇠가 ‘테스트 중’일 때 생기는 구글 규칙이에요. 열리면 다시 내 계정을 고르면 돼요.</p></details>
+      <details><summary>파란 ‘Windows의 PC 보호’ 창이나 백신이 막아요</summary><p><span class="k">추가 정보</span> → <span class="k">실행</span>을 눌러요. 백신은 이 홈페이지에서 받은 파일인지 확인한 뒤 허용하고, 학교 컴퓨터라면 관리자에게 물어봐요.</p></details>
+      <details><summary>저장했는데 드라이브에 안 올라가요</summary><p>아래 ‘편집 중인 파일’ 칸의 글을 읽어 보세요. 인터넷이 끊겼다면 다시 연결될 때 저절로 올라가요. ‘업로드 보류’면 파일이 깨졌는지 열어 확인해요.</p></details>
+      <details><summary>Google Drive 데스크톱도 깔려 있어요</summary><p>같이 켜 두면 G: 드라이브는 비밀번호 없이 열려요. 작업 표시줄의 구글 드라이브 아이콘 → 설정 → <b>종료</b>, 시작할 때 자동 실행도 꺼 주세요.</p></details>
+    </div>
+    <div class="box tip noprint" style="max-width:900px"><b>🤖 AI에게 물어보기</b>ChatGPT·Claude 같은 AI에게 <a href="manual/DriveKeeper-AI-Guide.md" download>AI용 설명서</a> 파일을 주고 물어보면, 이 프로그램에 맞게 차근차근 알려 줘요.</div>
+  </div>
+</section>
+
+</div></main>
+
+<div class="nav noprint">
+  <div class="wrap">
+    <button class="prev" id="prev">← 이전</button>
+    <span class="count" id="count"></span>
+    <button class="next" id="next">다 했어요! 다음 →</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/shots/spots.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CH = {
+    install: { n: "1", name: "설치하기" }, key: { n: "2", name: "열쇠 만들기" }, connect: { n: "3", name: "연결하기" },
+    use: { n: "4", name: "써 보기" }, add: { n: "5", name: "계정 추가" }, help: { n: "?", name: "막혔어요" }
+  };
+  var ALIAS = { install: "a1", key: "b1", connect: "c1", use: "d1", add: "e1" };
+  var steps = Array.prototype.slice.call(document.querySelectorAll(".step"));
+  // id가 있으면 주소의 #b1 때문에 브라우저가 그 자리로 스크롤해 버려서, id는 떼고 key로 쓴다
+  steps.forEach(function (s) { s.key = s.id; s.removeAttribute("id"); });
+  var ids = steps.map(function (s) { return s.key; });
+  var real = steps.filter(function (s) { return s.key !== "start" && s.key !== "help"; });
+  var cur = 0;
+  var store = { get: function () { try { return JSON.parse(localStorage.getItem("dk-guide") || "{}"); } catch (e) { return {}; } },
+                set: function (v) { try { localStorage.setItem("dk-guide", JSON.stringify(v)); } catch (e) {} } };
+  var saved = store.get();
+  var done = saved.done || {};
+
+  // 장마다 "② 열쇠 만들기 · 2 / 6" 표시
+  steps.forEach(function (s) {
+    var ch = s.dataset.ch, list = real.filter(function (x) { return x.dataset.ch === ch; });
+    var k = s.querySelector(".kicker");
+    if (k && CH[ch] && list.length) k.textContent = CH[ch].n + " " + CH[ch].name + " · " + (list.indexOf(s) + 1) + " / " + list.length;
+    if (list.length && list[list.length - 1] === s) s.classList.add("last-in-ch");
+  });
+
+  // 화면 사진 위 '여기를 눌러요' 표시
+  // data-crop="x,y,w,h" (그림에 대한 %): 그 부분만 크게 보여 준다
+  function cropShot(box, c) {
+    var img = box.querySelector("img");
+    box.classList.add("crop");
+    img.style.width = (100 / c[2] * 100) + "%";
+    img.style.left = (-c[0] / c[2] * 100) + "%";
+    img.style.top = (-c[1] / c[3] * 100) + "%";
+    function ratio() { if (img.naturalWidth) box.style.aspectRatio = (c[2] * img.naturalWidth) + " / " + (c[3] * img.naturalHeight); }
+    if (img.complete) ratio(); else img.addEventListener("load", ratio);
+  }
+  function placeSpots() {
+    var S = window.SPOTS || {};
+    document.querySelectorAll(".shot[data-crop]").forEach(function (box) { cropShot(box, box.dataset.crop.split(",").map(Number)); });
+    document.querySelectorAll(".shot[data-spots]").forEach(function (box) {
+      box.querySelectorAll(".ring").forEach(function (r) { r.remove(); });
+      var c = box.dataset.crop ? box.dataset.crop.split(",").map(Number) : [0, 0, 100, 100];
+      box.dataset.spots.split(";").forEach(function (spec) {
+        var p = spec.split("|"), r = S[p[0]];
+        if (!r) return;
+        var el = document.createElement("span");
+        el.className = "ring " + (p[2] || "");
+        el.style.left = "calc(" + ((r[0] - c[0]) / c[2] * 100) + "% - 5px)";
+        el.style.top = "calc(" + ((r[1] - c[1]) / c[3] * 100) + "% - 5px)";
+        el.style.width = "calc(" + (r[2] / c[2] * 100) + "% + 10px)";
+        el.style.height = "calc(" + (r[3] / c[3] * 100) + "% + 10px)";
+        if (p[1]) { var b = document.createElement("b"); b.textContent = p[1]; el.appendChild(b); }
+        box.appendChild(el);
+      });
+    });
+  }
+  placeSpots();
+
+  var printMode = /[?&]print\b/.test(location.search);
+  function openAll() { document.querySelectorAll("details").forEach(function (d) { d.open = true; }); }
+  if (printMode) { openAll(); return; }
+  window.addEventListener("beforeprint", openAll);
+
+  var rail = document.querySelectorAll(".chip"), bar = document.getElementById("barfill");
+  var prev = document.getElementById("prev"), next = document.getElementById("next"), count = document.getElementById("count");
+  var toast = document.getElementById("toast"), tt;
+  function say(msg) { toast.textContent = msg; toast.classList.add("show"); clearTimeout(tt); tt = setTimeout(function () { toast.classList.remove("show"); }, 1900); }
+
+  function show(i, push) {
+    i = Math.max(0, Math.min(steps.length - 1, i));
+    cur = i;
+    var s = steps[i], ch = s.dataset.ch;
+    steps.forEach(function (x, j) { x.classList.toggle("on", j === i); });
+    rail.forEach(function (c) {
+      var mine = real.filter(function (x) { return x.dataset.ch === c.dataset.ch; });
+      c.classList.toggle("cur", c.dataset.ch === ch);
+      c.classList.toggle("done", mine.length > 0 && mine.every(function (x) { return done[x.key]; }));
+    });
+    var ri = real.indexOf(s);
+    bar.style.width = (s.key === "start" ? 0 : s.key === "help" ? 100 : ((ri + 1) / real.length) * 100) + "%";
+    count.innerHTML = ri >= 0 ? "<b>" + (ri + 1) + "</b> / " + real.length : "";
+    prev.hidden = i === 0;
+    next.hidden = false;
+    next.textContent = s.key === "start" ? "처음부터 시작 →" : s.key === "c5" ? "써 보기 →" : s.key === "e4" ? "막혔을 때 보기 →" : s.key === "help" ? "처음 화면으로 ↺" : "다 했어요! 다음 →";
+    var url = s.key === "start" ? location.pathname : "#" + s.key;
+    if (push) history.pushState({ i: i }, "", url); else history.replaceState({ i: i }, "", url);
+    if (s.key !== "start" && s.key !== "help") { saved.step = s.key; saved.done = done; store.set(saved); }
+    window.scrollTo(0, 0);
+    var h = s.querySelector("h2"); if (h) h.focus({ preventScroll: true });
+    var chip = document.querySelector('.chip[data-ch="' + ch + '"]'); if (chip && chip.scrollIntoView) chip.scrollIntoView({ block: "nearest", inline: "center" });
+  }
+  function go(id, push) {
+    id = ALIAS[id] || id;
+    var i = ids.indexOf(id);
+    if (i >= 0) show(i, push !== false);
+  }
+  function forward() {
+    var s = steps[cur];
+    if (s.key === "help") { show(0, true); return; }
+    if (s.key !== "start") done[s.key] = true;
+    var n = steps[cur + 1];
+    if (s.classList.contains("last-in-ch") && n && CH[s.dataset.ch]) say(CH[s.dataset.ch].n + " " + CH[s.dataset.ch].name + " 끝! 잘했어요 👏");
+    show(cur + 1, true);
+  }
+  next.addEventListener("click", forward);
+  prev.addEventListener("click", function () { show(cur - 1, true); });
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-go]");
+    if (t && t.dataset.go) { e.preventDefault(); go(t.dataset.go); }
+    var a = e.target.closest('a[href^="#"]');
+    if (a && !t) { e.preventDefault(); go(a.getAttribute("href").slice(1)); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ""))) return;
+    if (e.key === "ArrowRight" && steps[cur].key !== "help") { e.preventDefault(); forward(); }
+    if (e.key === "ArrowLeft" && cur > 0) { e.preventDefault(); show(cur - 1, true); }
+  });
+  function fromHash() { var h = location.hash.slice(1); var i = ids.indexOf(ALIAS[h] || h); if (i !== cur || !h) show(i >= 0 ? i : 0, false); }
+  window.addEventListener("popstate", fromHash);
+  window.addEventListener("hashchange", fromHash);
+
+  // 하던 곳 이어서 하기
+  if (saved.step && saved.step !== "a1" && ids.indexOf(saved.step) > 0) {
+    var rs = document.getElementById("resume"), st = steps[ids.indexOf(saved.step)];
+    rs.style.display = "flex"; rs.dataset.go = saved.step;
+    document.getElementById("resumeS").textContent = (st.querySelector(".kicker") || {}).textContent || "";
+  }
+  var h0 = location.hash.slice(1), i0 = ids.indexOf(ALIAS[h0] || h0);
+  show(i0 >= 0 ? i0 : 0, false);
+})();
+</script>
+</body>
+</html>

@@ -17,8 +17,11 @@ sys.path.insert(0, str(ROOT / "tests"))
 OUT = ROOT / "docs" / "assets" / "shots"
 
 
-def capture(widget, name: str) -> None:
-    """창 하나를 PNG로 저장 (Windows PrintWindow)."""
+SPOTS: dict[str, list[float]] = {}
+
+
+def capture(widget, name: str) -> tuple[int, int, int, int]:
+    """창 하나를 PNG로 저장 (Windows PrintWindow). 저장한 그림의 화면 좌표 (왼쪽, 위, 너비, 높이)를 돌려준다."""
     import ctypes
     import struct
     import zlib
@@ -59,6 +62,7 @@ def capture(widget, name: str) -> None:
         row = data[y * w * 4:(y + 1) * w * 4]
         for x in range(x0, x1):
             raw += bytes((row[x * 4 + 2], row[x * 4 + 1], row[x * 4]))
+    frame = (r.left + x0, r.top + y0, x1 - x0, y1 - y0)
     w, h = x1 - x0, y1 - y0
 
     def chunk(t, d):
@@ -68,6 +72,24 @@ def capture(widget, name: str) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{name}.png").write_bytes(png)
     print("찍음:", name, w, "x", h)
+    return frame
+
+
+def spot(key: str, frame, x: int, y: int, w: int, h: int) -> None:
+    """따라 하기 안내에서 '여기를 눌러요' 표시를 놓을 자리 (그림 크기에 대한 %)."""
+    fx, fy, fw, fh = frame
+    SPOTS[key] = [round((x - fx) / fw * 100, 2), round((y - fy) / fh * 100, 2),
+                  round(w / fw * 100, 2), round(h / fh * 100, 2)]
+
+
+def wspot(key: str, frame, widget) -> None:
+    widget.update_idletasks()
+    spot(key, frame, widget.winfo_rootx(), widget.winfo_rooty(), widget.winfo_width(), widget.winfo_height())
+
+
+def tspot(key: str, frame, tree, iid: str, column: str = "#0") -> None:
+    x, y, w, h = tree.bbox(iid, column) if column != "#0" else tree.bbox(iid)
+    spot(key, frame, tree.winfo_rootx() + x, tree.winfo_rooty() + y, w, h)
 
 
 def main() -> int:
@@ -87,6 +109,7 @@ def main() -> int:
         setattr(app_mod.messagebox, n, lambda *a, **k: None)
     email = "teacher@example.com"
     d = FakeDrive(email)
+    d2 = FakeDrive("school@example.com")
     folders = ["2학기 학급 운영", "수업 자료", "업무 문서"]
     for f in folders:
         d.add_file(f, None, mime="application/vnd.google-apps.folder")
@@ -121,7 +144,9 @@ def main() -> int:
     pump(0.8)
     a.open_setup()
     pump(0.8)
-    capture(a._setup, "setup_first")
+    f = capture(a._setup, "setup_first")
+    wspot("setup_guide", f, a._setup.cards[1][1][0])
+    wspot("setup_find", f, a._setup.cards[2][1][0])
     a._setup.destroy()
     # 열쇠를 넣은 뒤
     (base / "client_secret.json").write_text(json.dumps({"installed": {
@@ -129,7 +154,8 @@ def main() -> int:
         encoding="utf-8")
     a.open_setup()
     pump(0.6)
-    capture(a._setup, "setup_key")
+    f = capture(a._setup, "setup_key")
+    wspot("setup_login", f, a._setup.cards[3][1][0])
     a._setup.destroy()
     a.help_menu.unpost()
     a.show_help("key")
@@ -143,7 +169,7 @@ def main() -> int:
     st = accounts.AccountStore()
     st.load()
     st.add(email)
-    a = app_mod.App(drive_factory=lambda acct, cb: d)
+    a = app_mod.App(drive_factory=lambda acct, cb: d2 if acct.email == "school@example.com" else d)
     a.geometry("1180x760+30+30")
     pump(2.5)
     a.open_item(next(m for m in a.item_meta.values() if m["name"].endswith(".hwp")))
@@ -154,7 +180,29 @@ def main() -> int:
         sm._recs[r["key"]]["status"] = "드라이브에 저장됨 14:32:10"
     a._refresh_track_view()
     pump(0.4)
-    capture(a, "main")
+    f = capture(a, "main")
+    tspot("main_add", f, a.nav, "add")
+    wspot("main_security", f, a.btn_security)
+    wspot("main_lock", f, a.btn_lock)
+    wspot("main_tm", f, a.btn_tm)
+    hwp = next(i for i, m in a.item_meta.items() if m["name"].endswith(".hwp"))
+    tspot("main_file", f, a.tree, hwp)
+    first = a.track_tree.get_children()[0]
+    tspot("main_saved", f, a.track_tree, first, "status")
+    # 계정 하나 더 (학교 계정 예시)
+    school = "school@example.com"
+    for n, size in (("3학년 2반 시간표.xlsx", 12000), ("학년 협의회 자료.hwp", 52000), ("방과후 신청서.docx", 21000)):
+        d2.add_file(n, b"x" * size, mime="application/octet-stream")
+    d2.add_file("학년 공용 폴더", None, mime="application/vnd.google-apps.folder")
+    a._on_add_ok(('{"refresh_token": "demo"}', school))
+    pump(2.0)
+    a.set_status(f"{school} 계정을 추가했습니다.")
+    pump(0.3)
+    f = capture(a, "two_accounts")
+    acct2 = next(x for x in a.store.accounts if x.email == school)
+    tspot("two_new", f, a.nav, f"a:{acct2.id}")
+    a.navigate([app_mod.loc_mydrive(a.store.accounts[0].id)])
+    pump(1.0)
     # 타임머신
     a.open_time_machine()
     pump(1.2)
@@ -180,6 +228,9 @@ def main() -> int:
     a.unlock()
     a.shutdown()
     shutil.rmtree(base, ignore_errors=True)
+    (OUT / "spots.js").write_text("// tools/make_screenshots.py가 만든 파일: 화면 사진 속 단추 자리(%)\nwindow.SPOTS = "
+                                  + json.dumps(SPOTS, ensure_ascii=False, indent=1) + ";\n", encoding="utf-8")
+    print("자리:", SPOTS)
     return 0
 
 

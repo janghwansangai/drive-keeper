@@ -1,4 +1,6 @@
-"""사람용 설명서 PDF 만들기: manual/manual.html → Edge(또는 Chrome)로 인쇄.
+"""사람용 설명서 PDF 만들기: 홈페이지의 따라 하기 안내(docs/start.html)를 Edge(또는 Chrome)로 인쇄.
+
+화면용 안내와 PDF가 늘 같은 내용이 되도록 한 파일에서 만든다 (인쇄할 때는 모든 단계를 차례로 보여 줌).
 
 실행: .venv\\Scripts\\python tools\\build_manual.py
 결과: docs/manual/DriveKeeper-Manual.pdf
@@ -10,7 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "manual" / "manual.html"
+SRC = ROOT / "docs" / "start.html"
 OUT = ROOT / "docs" / "manual" / "DriveKeeper-Manual.pdf"
 BROWSERS = [r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -29,8 +31,10 @@ def main() -> int:
     if True:
         if OUT.exists():
             OUT.unlink()
+        # ?print: 모든 단계를 펼쳐서 보여 준다. 글꼴·그림을 다 받을 때까지 기다린 뒤 인쇄
         cmd = [exe, "--headless", "--disable-gpu", "--no-first-run", f"--user-data-dir={prof}",
-               "--no-pdf-header-footer", f"--print-to-pdf={OUT}", SRC.resolve().as_uri()]
+               "--no-pdf-header-footer", "--virtual-time-budget=15000", "--run-all-compositor-stages-before-draw",
+               f"--print-to-pdf={OUT}", SRC.resolve().as_uri() + "?print"]
         subprocess.run(cmd, timeout=180, capture_output=True)
     if not OUT.exists():
         print("PDF를 만들지 못했습니다.")

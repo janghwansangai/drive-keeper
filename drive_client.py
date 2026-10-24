@@ -173,7 +173,7 @@ def browser_login(on_browser_login: Callable[[], None] | None = None, login_hint
         if login_hint:
             kwargs["login_hint"] = login_hint
         try:
-            return flow.run_local_server(
+            creds = flow.run_local_server(
                 port=0, timeout_seconds=config.LOGIN_TIMEOUT_SEC, success_message=LOGIN_DONE_HTML,
                 authorization_prompt_message="", **kwargs)
         except WSGITimeoutError as e:
@@ -183,8 +183,20 @@ def browser_login(on_browser_login: Callable[[], None] | None = None, login_hint
                 raise AuthError(
                     "로그인이 취소되었거나 차단되었습니다.\n"
                     "다른 계정이라면 Google Cloud 콘솔의 '테스트 사용자'에 그 계정을 추가해야 합니다 "
-                    "(README '다른 계정 추가').") from e
+                    "(도움말 → 다른 계정 추가 방법).") from e
+            if "Scope has changed" in str(e):   # 구글 권한 화면에서 드라이브 체크를 풀고 [계속]을 누른 경우
+                raise AuthError(_SCOPE_MISSING) from e
             raise
+        granted = getattr(creds, "granted_scopes", None)   # 구글이 실제로 허락한 권한 (요청한 것과 다를 수 있음)
+        if isinstance(granted, str):
+            granted = granted.split()
+        if granted is not None and not set(config.SCOPES) <= set(granted):
+            raise AuthError(_SCOPE_MISSING)
+        return creds
+
+
+_SCOPE_MISSING = ("구글 드라이브 권한을 받지 못했어요.\n"
+                  "다시 로그인하고, 구글 화면에서 '드라이브' 항목에 체크한 뒤 [계속]을 눌러 주세요.")
 
 
 def fetch_email(creds: Credentials) -> str:

@@ -767,6 +767,11 @@ def _console_url(page: str = "auth/audience") -> str:
     return f"https://console.cloud.google.com/{page}" + (f"?project={pid}" if pid else "")
 
 
+def open_guide(part: str = "") -> None:
+    """홈페이지의 그림 따라 하기 안내를 연다 (part: install·key·connect·add)."""
+    webbrowser.open(config.GUIDE_URL + (f"#{part}" if part else ""))
+
+
 CONSOLE = {
     "project": "https://console.cloud.google.com/projectcreate",
     "api": "https://console.cloud.google.com/apis/library/drive.googleapis.com",
@@ -796,7 +801,8 @@ HELP_TOPICS: dict[str, tuple[str, list[tuple[str, str]]]] = {
                  "• 동의 칸에 체크 → [계속] → [만들기]"),
         ("h2", "4. 나를 '테스트 사용자'로 넣기"),
         ("link", "대상(테스트 사용자) 화면 열기|" + CONSOLE["audience"]),
-        ("step", "• 아래쪽 '테스트 사용자'의 [+ Add users]를 누릅니다.\n• 내 Gmail 주소를 쓰고 [저장]을 누릅니다."),
+        ("step", "• 아래쪽 '테스트 사용자'의 [+ Add users]를 누릅니다.\n• 내 Gmail 주소를 쓰고 [저장]을 누릅니다.\n"
+                 "• 나중에 쓸 다른 계정(예: 학교 계정)도 지금 같이 넣어 두면, 계정 추가가 바로 돼요."),
         ("h2", "5. 열쇠 파일 받기"),
         ("link", "클라이언트(열쇠) 만들기 화면 열기|" + CONSOLE["client"]),
         ("step", "• 애플리케이션 유형: [데스크톱 앱]을 고릅니다. 이름은 아무거나 → [만들기]\n"
@@ -819,8 +825,9 @@ HELP_TOPICS: dict[str, tuple[str, list[tuple[str, str]]]] = {
         ("h2", "2단계. 프로그램에서 계정 추가하기"),
         ("step", "• 아래 [계정 추가 시작] (왼쪽 목록 맨 아래 '+ 계정 추가'와 같아요)\n"
                  "• 브라우저에서 추가할 계정을 고릅니다. 없으면 '다른 계정 사용'\n"
-                 "• 'Google에서 확인하지 않은 앱'이 나오면 [고급] → '...(으)로 이동'을 누릅니다. (내가 만든 앱이라 나오는 안내)\n"
-                 "• 권한 화면에서 [계속] → '로그인이 완료되었습니다'가 뜨면 브라우저를 닫고 돌아오세요."),
+                 "• 'Google에서 확인하지 않은 앱'이 나오면 파란 단추 말고 왼쪽 글자 [계속]을 누릅니다.\n"
+                 "  ([계속]이 없으면 [고급] → '...(으)로 이동'. 내가 만든 앱이라 나오는 안내예요)\n"
+                 "• 권한 화면에서 체크 칸이 있으면 체크하고 [계속] → '로그인이 완료되었습니다'가 뜨면 브라우저를 닫고 돌아오세요."),
         ("h2", "잘 안 될 때"),
         ("note", "• '액세스 차단됨' / 'access_denied' → 1단계를 안 했거나 주소에 오타가 있어요."),
         ("note", "• 학교 계정에서 '관리자가 차단함' → 학교 관리자에게 허용을 요청하거나 개인 계정을 쓰세요."),
@@ -869,9 +876,11 @@ class HelpDialog(tk.Toplevel):
         if topic == "account":
             ttk.Button(btns, text="계정 추가 시작", style="Accent.TButton", command=self._start_add).pack(
                 side="right", padx=6)
+            ttk.Button(btns, text="그림으로 보기", command=lambda: open_guide("add")).pack(side="right")
         if topic == "key":
             ttk.Button(btns, text="시작 도우미 열기", style="Accent.TButton",
                        command=lambda: (self.destroy(), app.open_setup())).pack(side="right", padx=6)
+            ttk.Button(btns, text="그림으로 따라 하기", command=lambda: open_guide("key")).pack(side="right")
         base = tkfont.nametofont("TkDefaultFont")
         f_text = base.copy()
         f_text.configure(size=base.cget("size") + 1)
@@ -945,13 +954,15 @@ class SetupWizard(tk.Toplevel):
         body.pack(fill="both", expand=True)
         self.status = {}
         self.cards = {}
-        self._card(body, 1, "내 구글 열쇠 만들기", "구글 클라우드에서 나만의 열쇠 파일을 만듭니다 (약 5분).\n"
-                   "안내 창의 파란 단추를 차례대로 누르며 따라 하면 돼요.",
-                   [("따라 하기 안내 열기", lambda: app.show_help("key"), True)])
-        self._card(body, 2, "열쇠 파일 불러오기", "받은 client_secret_....json 파일을 프로그램에 넣습니다.",
+        self._card(body, 1, "내 구글 열쇠 만들기", "구글 클라우드에서 나만의 열쇠 파일을 만들어요 (처음 한 번, 약 5분).\n"
+                   "[그림으로 따라 하기]를 누르면 한 단계씩 그림으로 보여 줘요.",
+                   [("그림으로 따라 하기", lambda: open_guide("key"), True),
+                    ("글로 보기", lambda: app.show_help("key"), False)])
+        self._card(body, 2, "열쇠 파일 불러오기", "받은 client_secret_....json 파일을 프로그램에 넣어요.\n"
+                   "[다운로드 폴더에서 찾기]를 누르면 저절로 찾아 줘요.",
                    [("다운로드 폴더에서 찾기", self.find_key, True), ("직접 고르기...", self.pick_key, False)])
-        self._card(body, 3, "내 구글 계정으로 로그인", "브라우저가 열리면 열쇠를 만든 구글 계정으로 로그인하세요.\n"
-                   "'확인하지 않은 앱' 안내가 나오면 [고급] → [...(으)로 이동]을 누르면 돼요.",
+        self._card(body, 3, "내 구글 계정으로 로그인", "브라우저가 열리면 열쇠를 만든 구글 계정을 고르세요.\n"
+                   "'확인하지 않은 앱'이 나오면 파란 단추 말고 왼쪽 글자 [계속]을 눌러요.",
                    [("로그인하기", self.login, True)])
         foot = tk.Frame(self, bg=T.BG, padx=int(24 * s), pady=int(0 * s))
         foot.pack(fill="x", pady=(0, int(16 * s)))
@@ -1702,7 +1713,8 @@ class App(tk.Tk):
                                                                                      pady=(int(4 * s), 0))
         self.help_btn = IconButton(head, "help", "도움말", self._popup_help, variant="header", app=self)
         self.help_btn.pack(side="right")
-        IconButton(head, "shield", "보안 설정", self.open_security, variant="header", app=self).pack(side="right")
+        self.btn_security = IconButton(head, "shield", "보안 설정", self.open_security, variant="header", app=self)
+        self.btn_security.pack(side="right")
         self.btn_lock = IconButton(head, "lock", "잠금", lambda: self.lock_now("manual"), variant="header", app=self,
                                    tooltip="지금 바로 잠그기 (Ctrl+L)")
         self.btn_lock.pack(side="right")
@@ -1714,6 +1726,7 @@ class App(tk.Tk):
                      fg=T.HEADER_MUTED).pack(side="left", padx=(0, int(4 * s)))
         tk.Label(acc, textvariable=self.account_var, bg=T.HEADER, fg="#E3EAFF").pack(side="left")
         self.help_menu = tk.Menu(self, tearoff=False)
+        self.help_menu.add_command(label="그림으로 따라 하기 (홈페이지)", command=open_guide)
         self.help_menu.add_command(label="시작 도우미 (열쇠 넣기·로그인)", command=self.open_setup)
         self.help_menu.add_command(label="내 구글 열쇠 만들기 안내", command=lambda: self.show_help("key"))
         self.help_menu.add_command(label="다른 계정 추가 방법", command=lambda: self.show_help("account"))
@@ -1739,8 +1752,9 @@ class App(tk.Tk):
         self.btn_up.pack(side="left")
         IconButton(tool, "refresh", "", self.refresh, tooltip="새로고침 (F5)", app=self).pack(side="left")
         tk.Frame(tool, bg=T.BORDER, width=1, height=int(22 * s)).pack(side="left", padx=int(8 * s))
-        IconButton(tool, "history", "타임머신", lambda: self.open_time_machine(), app=self,
-                   tooltip="지운 파일 되살리기 · 예전 버전으로 되돌리기").pack(side="right")
+        self.btn_tm = IconButton(tool, "history", "타임머신", lambda: self.open_time_machine(), app=self,
+                                 tooltip="지운 파일 되살리기 · 예전 버전으로 되돌리기")
+        self.btn_tm.pack(side="right")
         sbox = tk.Frame(tool, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER,
                         highlightcolor=T.PRIMARY)
         sbox.pack(side="right", padx=(0, int(10 * s)))

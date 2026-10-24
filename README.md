@@ -5,6 +5,7 @@
 <p align="center">
   <a href="https://janghwansangai.github.io/drive-keeper/"><b>홈페이지</b></a> ·
   <a href="https://github.com/janghwansangai/drive-keeper/releases/latest/download/DriveKeeper.zip"><b>내려받기</b></a> ·
+  <a href="https://janghwansangai.github.io/drive-keeper/start.html"><b>따라 하기</b></a> ·
   <a href="docs/manual/DriveKeeper-Manual.pdf">사용설명서(PDF)</a> ·
   <a href="docs/manual/DriveKeeper-AI-Guide.md">AI용 설명서(MD)</a>
 </p>
@@ -42,7 +43,7 @@
 > **각자 자신의 열쇠를 씁니다.** 드라이브 지킴이에는 만든 사람의 Google 계정이나 열쇠가 들어 있지 않아요.
 > 사용자가 자기 Google 계정으로 무료 '앱 열쇠(client_secret.json)'를 만들어 넣기 때문에,
 > 내 파일은 **내 컴퓨터 ↔ Google** 사이로만 오가고 다른 서버를 거치지 않습니다.
-> 열쇠 만드는 법은 [사용설명서](docs/manual/DriveKeeper-Manual.pdf) 4~6쪽에 그림으로 나와 있어요.
+> 열쇠 만드는 법은 [따라 하기 안내](https://janghwansangai.github.io/drive-keeper/start.html#key)에서 한 단계씩 그림으로 볼 수 있어요.
 
 새 버전이 나오면 프로그램이 알려 줘요. 새 zip의 **설치하기**를 다시 누르면 설정 · 로그인은 그대로 남습니다.
 
@@ -66,7 +67,8 @@ python -m venv .venv
 | `accounts.py` · `config.py` | 여러 계정, 데이터 폴더(`%USERPROFILE%\DriveKeeper`) |
 | `updater.py` | GitHub Releases에서 새 버전 확인 |
 | `installer/` | 설치 · 지우기 스크립트 (현재 사용자에게만 설치) |
-| `docs/` | 홈페이지 (GitHub Pages), 설명서 |
+| `docs/` | 홈페이지 (GitHub Pages). `start.html` = 따라 하기 안내 (인쇄하면 설명서 PDF: `tools/build_manual.py`) |
+| `tools/` | 화면 사진·누를 곳 자리(`make_screenshots.py` → `docs/assets/shots/spots.js`), PDF, 배포 zip |
 
 새 버전 내기: `config.VERSION` 올리기 → exe · zip 만들기 →
 `gh release create vX.Y.Z release/DriveKeeper.zip` (파일 이름은 꼭 `DriveKeeper.zip`)

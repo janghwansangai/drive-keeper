@@ -11,9 +11,10 @@ from pathlib import Path
 
 APP_NAME = "DriveKeeper"          # 데이터 폴더·exe 이름
 APP_TITLE = "드라이브 지킴이"       # 창 제목 (중복 실행 확인에도 씀)
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 GITHUB_REPO = "janghwansangai/drive-keeper"
 SITE_URL = "https://janghwansangai.github.io/drive-keeper/"
+GUIDE_URL = SITE_URL + "start.html"   # 그림으로 한 단계씩 보여 주는 따라 하기 안내 (#install #key #connect #add)
 RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases/latest"
 
 # 드라이브 전체 읽기/쓰기 권한 (파일 열기·수정 저장에 필요)

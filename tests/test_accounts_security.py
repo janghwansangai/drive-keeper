@@ -234,6 +234,68 @@ class TestAccountStore(TempBase):
 
 
 # ======================= 통신 보안 (삭제 차단) =======================
+class TestLoginScope(unittest.TestCase):
+    """구글 권한 화면에서 드라이브 체크를 빼고 [계속]을 누르면 알아듣기 쉬운 안내를 보여 준다."""
+
+    def setUp(self) -> None:
+        import drive_client
+        self.dc = drive_client
+        self._saved = (drive_client._client_config, drive_client.InstalledAppFlow)
+        drive_client._client_config = lambda: {"installed": {"client_id": "x"}}
+
+    def tearDown(self) -> None:
+        self.dc._client_config, self.dc.InstalledAppFlow = self._saved
+
+    def _flow(self, result=None, error=None):
+        class Flow:
+            def run_local_server(self, **kw):
+                if error:
+                    raise error
+                return result
+
+        class Factory:
+            @staticmethod
+            def from_client_config(info, scopes):
+                return Flow()
+        self.dc.InstalledAppFlow = Factory
+
+    def test_granted_without_drive(self):
+        class Creds:
+            granted_scopes = ["openid"]
+        self._flow(Creds())
+        with self.assertRaises(self.dc.AuthError) as cm:
+            self.dc.browser_login()
+        self.assertIn("체크", str(cm.exception))
+
+    def test_scope_changed_warning(self):
+        self._flow(error=Warning("Scope has changed from \"drive\" to \"\"."))
+        with self.assertRaises(self.dc.AuthError) as cm:
+            self.dc.browser_login()
+        self.assertIn("드라이브", str(cm.exception))
+
+    def test_drive_granted_ok(self):
+        class Creds:
+            granted_scopes = list(config.SCOPES)
+        c = Creds()
+        self._flow(c)
+        self.assertIs(self.dc.browser_login(), c)
+
+    def test_guide_links(self):
+        self.assertTrue(config.GUIDE_URL.startswith(config.SITE_URL))
+        opened = []
+        real = app_mod.webbrowser.open
+        app_mod.webbrowser.open = opened.append
+        try:
+            app_mod.open_guide("add")
+            app_mod.open_guide()
+        finally:
+            app_mod.webbrowser.open = real
+        self.assertEqual(opened, [config.GUIDE_URL + "#add", config.GUIDE_URL])
+        guide = (ROOT / "docs" / "start.html").read_text(encoding="utf-8")
+        for part in ("install", "key", "connect", "add"):   # 프로그램이 여는 #장 이름이 안내 페이지에 있어야 함
+            self.assertIn(f"{part}: \"", guide)
+
+
 class TestRequestGuard(unittest.TestCase):
     def setUp(self) -> None:
         import drive_client
