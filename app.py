@@ -19,6 +19,7 @@ import hashlib
 import json
 import logging
 import logging.handlers
+import math
 import os
 import queue
 import re
@@ -199,9 +200,48 @@ class Icons:
         for key, color in self.PAGE_COLORS.items():
             self.images[key] = self._fit(self._page(color))
         self.size = self.images["folder"].width()
+        for kind, (fill, ink, mark) in STATUS_LOOK.items():
+            self.images["st_" + kind] = self._badge(fill, ink, MARKS[mark], T.SURFACE)
+        self.images["acct_on"] = self._badge(T.PRIMARY, "#FFFFFF", MARKS["person"], T.SIDEBAR)
+        self.images["acct_off"] = self._badge("#B8BEC8", "#FFFFFF", MARKS["person"], T.SIDEBAR)
 
     def get(self, key: str) -> tk.PhotoImage:
         return self.images.get(key) or self.images["file"]
+
+    def _badge(self, fill: str, ink: str, marks, bg: str) -> tk.PhotoImage:
+        """색 동그라미 + 굵은 선 그림 (편집 중인 파일 상태·계정 표시). 가장자리는 겹쳐 그려 부드럽게."""
+        size, ss = round(self.size * 1.25), 3
+
+        def rgb(h: str) -> tuple[int, int, int]:
+            return int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
+        f, k, b = rgb(fill), rgb(ink), rgb(bg)
+        img = tk.PhotoImage(master=self.master, width=size, height=size)
+        rows, clear = [], []
+        for py in range(size):
+            row = []
+            for px in range(size):
+                cov = inked = 0
+                for sy in range(ss):
+                    for sx in range(ss):
+                        x = (px + (sx + 0.5) / ss) / size
+                        y = (py + (sy + 0.5) / ss) / size
+                        if (x - 0.5) ** 2 + (y - 0.5) ** 2 > 0.47 ** 2:
+                            continue
+                        cov += 1
+                        if any(_seg_dist(x, y, *m[:4]) <= (m[4] if len(m) > 4 else 0.085) for m in marks):
+                            inked += 1
+                if not cov:
+                    row.append("#%02x%02x%02x" % b)
+                    clear.append((px, py))
+                    continue
+                a, t = cov / (ss * ss), inked / cov
+                col = (b[i] + (f[i] + (k[i] - f[i]) * t - b[i]) * a for i in range(3))
+                row.append("#%02x%02x%02x" % tuple(round(c) for c in col))
+            rows.append("{" + " ".join(row) + "}")
+        img.put(" ".join(rows))
+        for px, py in clear:
+            img.transparency_set(px, py, True)
+        return img
 
     def _new(self) -> tk.PhotoImage:
         return tk.PhotoImage(master=self.master, width=16, height=16)
@@ -356,24 +396,29 @@ SLEEP_GAP_SEC = 30      # 화면 타이머가 이만큼 멈췄으면 절전(최�
 # ---------- 잠금 화면 ----------
 # ---------- 디자인: 색·아이콘·버튼 ----------
 class T:
-    """드라이브 지킴이 색 (로고의 파란 방패에 맞춤)."""
-    BG = "#F3F6FB"
+    """드라이브 지킴이 색: 밝은 회색 바탕 + 흰 면 + 로고의 파란색 하나. 글자는 바탕 위에서 4.5:1 이상."""
+    BG = "#F3F4F6"
     SURFACE = "#FFFFFF"
-    SIDEBAR = "#EDF2FA"
-    BORDER = "#DCE3EE"
-    TEXT = "#1E293B"
-    MUTED = "#64748B"
+    SIDEBAR = "#F9FAFB"
+    BORDER = "#E5E7EB"
+    BORDER_STRONG = "#D1D5DB"
+    TEXT = "#111827"
+    MUTED = "#4B5563"
+    FAINT = "#9CA3AF"
     PRIMARY = "#2563EB"
     PRIMARY_DARK = "#1D4ED8"
-    PRIMARY_SOFT = "#DCE8FF"
-    HOVER = "#EAF1FF"
-    HEADER = "#13245E"
-    HEADER_HOVER = "#203A86"
-    HEADER_MUTED = "#AFC0F0"
-    OK = "#059669"
+    PRIMARY_SOFT = "#E9EFFD"
+    PRIMARY_INK = "#1C4AB0"     # 연한 파랑 위 글자
+    HOVER = "#F3F4F6"
+    OK = "#15803D"
+    OK_SOFT = "#DCFCE7"
     WARN = "#B45309"
-    DANGER = "#DC2626"
-    STRIPE = "#F8FAFD"
+    WARN_SOFT = "#FEF3C7"
+    WARN_BG = "#FFFBEB"
+    WARN_LINE = "#FCD34D"
+    WARN_INK = "#92400E"
+    DANGER = "#B91C1C"
+    STRIPE = "#FAFAFB"
 
 
 # Windows 기본 아이콘 글꼴(Segoe Fluent Icons / MDL2)의 그림 문자. 글꼴이 없으면 오른쪽 글자로 대신함
@@ -384,6 +429,66 @@ ICONS = {
     "clean": ("", "✕"), "download": ("", "↓"), "key": ("", "✱"), "check": ("", "✓"),
     "person": ("", "●"), "info": ("", "i"),
 }
+
+
+ICONS.update({"clock": ("", "◷"), "warning": ("", "!")})
+
+# 상태·계정 동그라미 안의 선 그림: (x0, y0, x1, y1[, 굵기]) — 0~1 좌표
+MARKS = {
+    "check": [(0.30, 0.52, 0.44, 0.66), (0.44, 0.66, 0.70, 0.38)],
+    "up": [(0.50, 0.31, 0.50, 0.69), (0.34, 0.47, 0.50, 0.31), (0.66, 0.47, 0.50, 0.31)],
+    "pen": [(0.34, 0.66, 0.66, 0.34)],
+    "bang": [(0.50, 0.28, 0.50, 0.54), (0.50, 0.70, 0.50, 0.70)],
+    "dash": [(0.32, 0.50, 0.68, 0.50)],
+    "x": [(0.37, 0.37, 0.63, 0.63), (0.63, 0.37, 0.37, 0.63)],
+    "clock": [(0.50, 0.50, 0.50, 0.31), (0.50, 0.50, 0.64, 0.59)],
+    "person": [(0.50, 0.38, 0.50, 0.38, 0.12), (0.36, 0.72, 0.64, 0.72, 0.10)],
+}
+# '편집 중인 파일' 상태 종류 → (동그라미 색, 선 색, 그림)
+STATUS_LOOK = {
+    "saved": (T.OK_SOFT, T.OK, "check"),
+    "uploading": (T.PRIMARY_SOFT, T.PRIMARY, "up"),
+    "open": ("#F3F4F6", "#374151", "pen"),
+    "wait": (T.WARN_SOFT, T.WARN, "clock"),
+    "alert": (T.WARN_SOFT, T.WARN, "bang"),
+    "copy": ("#F3F4F6", T.MUTED, "dash"),
+    "missing": ("#F3F4F6", T.MUTED, "x"),
+}
+
+
+def _seg_dist(x: float, y: float, x0: float, y0: float, x1: float, y1: float) -> float:
+    dx, dy = x1 - x0, y1 - y0
+    length = dx * dx + dy * dy
+    t = 0.0 if length == 0 else max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / length))
+    return math.hypot(x - x0 - t * dx, y - y0 - t * dy)
+
+
+def track_kind(status: str) -> str:
+    """'편집 중인 파일' 상태 글 → 색 아이콘 종류 (STATUS_LOOK의 열쇠)."""
+    if status.startswith(("드라이브에 저장됨", "드라이브와 같음", "새 파일로 드라이브에 저장됨")):
+        return "saved"
+    if status.startswith(("업로드 중", "새 파일 - 드라이브에 올리는 중", "확인 중")):
+        return "uploading"
+    if status == sync.STATUS_IDLE:
+        return "open"
+    if status in (sync.STATUS_NATIVE, sync.STATUS_READONLY):
+        return "copy"
+    if status.startswith("로컬 파일이 없"):
+        return "missing"
+    if status.startswith(("파일이 잠겨", "드라이브 연결 대기")) or (
+            status.startswith("업로드 실패") and "다시 시도" in status):
+        return "wait"
+    return "alert"   # 업로드 보류, 충돌 사본, 로그인 필요, 다시 저장해야 하는 실패
+
+
+def days_left_in_trash(trashed: str) -> str:
+    """드라이브 휴지통은 30일 동안 보관한다. 남은 날수 글 ('' = 모름)."""
+    try:
+        when = _dt.datetime.fromisoformat(trashed.replace("Z", "+00:00"))
+    except (AttributeError, ValueError):
+        return ""
+    left = max(0, 30 - (_dt.datetime.now(_dt.timezone.utc) - when).days)
+    return f"{left}일 (곧 지워져요)" if left <= 3 else f"{left}일"
 
 
 def icon_font_family(root: tk.Misc) -> str | None:
@@ -454,24 +559,28 @@ class IconButton(tk.Frame):
     """아이콘 + 글자 단추 (평평한 현대식). ttk 단추처럼 state(["disabled"]) 를 쓸 수 있다."""
 
     VARIANTS = {
-        "tool": (T.SURFACE, T.HOVER, T.TEXT, T.PRIMARY),
-        "side": (T.SIDEBAR, T.HOVER, T.TEXT, T.PRIMARY),
-        "header": (T.HEADER, T.HEADER_HOVER, "#FFFFFF", "#FFFFFF"),
-        "accent": (T.PRIMARY, T.PRIMARY_DARK, "#FFFFFF", "#FFFFFF"),
+        # 바탕, 마우스를 올렸을 때, 글자, 아이콘, 테두리
+        "tool": (T.SURFACE, T.HOVER, T.TEXT, "#374151", None),
+        "bar": (T.BG, T.BORDER, T.TEXT, "#374151", None),
+        "outline": (T.SURFACE, T.HOVER, T.TEXT, "#374151", T.BORDER_STRONG),
+        "accent": (T.PRIMARY, T.PRIMARY_DARK, "#FFFFFF", "#FFFFFF", None),
+        "warn": (T.SURFACE, T.WARN_BG, T.WARN_INK, T.WARN, "#D97706"),
     }
 
     def __init__(self, master, icon: str = "", text: str = "", command=None, variant: str = "tool",
                  tooltip: str = "", app: "App | None" = None) -> None:
-        bg, hover, fg, icon_fg = self.VARIANTS[variant]
-        super().__init__(master, bg=bg, cursor="hand2")
+        bg, hover, fg, icon_fg, line = self.VARIANTS[variant]
+        super().__init__(master, bg=bg, cursor="hand2", highlightthickness=1 if line else 0,
+                         highlightbackground=line or bg, highlightcolor=line or bg)
         self._bg, self._hover, self._fg, self._icon_fg = bg, hover, fg, icon_fg
+        self._variant = variant
         self._command = command
         self._disabled = False
         root = app or self.winfo_toplevel()
         fam = getattr(root, "icon_family", None)
         glyph, fallback = ICONS.get(icon, ("", ""))
         s = getattr(root, "scale", 1.0)
-        padx, pady = int(8 * s), int(5 * s)
+        padx, pady = int(10 * s), int(6 * s)
         self.icon_label = None
         if icon:
             self.icon_label = tk.Label(self, text=glyph if fam else fallback, bg=bg, fg=icon_fg,
@@ -494,12 +603,16 @@ class IconButton(tk.Frame):
             if w is not None:
                 w.configure(bg=bg)
 
+    def _rest_bg(self) -> str:
+        # 꺼진 '주요' 단추는 회색으로 (파란색이면 눌러도 되는 것처럼 보임)
+        return "#E5E7EB" if self._disabled and self._variant == "accent" else self._bg
+
     def _enter(self, _e=None) -> None:
         if not self._disabled:
             self._paint(self._hover)
 
     def _leave(self, _e=None) -> None:
-        self._paint(self._bg)
+        self._paint(self._rest_bg())
 
     def _click(self, e=None) -> None:
         if self._disabled or self._command is None:
@@ -519,14 +632,13 @@ class IconButton(tk.Frame):
                     self._disabled = True
                 elif item == "!disabled":
                     self._disabled = False
-            muted = "#94A3B8" if self._bg != T.HEADER else "#5D6FA8"
+            muted = "#6B7280" if self._variant == "accent" else T.FAINT
             if self.icon_label is not None:
                 self.icon_label.configure(fg=muted if self._disabled else self._icon_fg)
             if self.text_label is not None:
                 self.text_label.configure(fg=muted if self._disabled else self._fg)
             self.configure(cursor="arrow" if self._disabled else "hand2")
-            if self._disabled:
-                self._paint(self._bg)
+            self._paint(self._rest_bg())
         return ("disabled",) if self._disabled else ()
 
     def set_text(self, text: str) -> None:
@@ -539,53 +651,60 @@ class LockScreen(tk.Frame):
     """창 전체를 덮는 잠금 화면. 풀기 전에는 목록·버튼·단축키를 쓸 수 없다."""
 
     def __init__(self, app: "App", reason: str) -> None:
-        super().__init__(app, bg=T.HEADER)
+        super().__init__(app, bg=T.BG)
         self.app = app
         self.reason = reason
         s = app.scale
         self.place(x=0, y=0, relwidth=1, relheight=1)
         self.lift()
-        card = tk.Frame(self, bg=T.SURFACE, padx=int(40 * s), pady=int(32 * s))
+        card = tk.Frame(self, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER,
+                        padx=int(36 * s), pady=int(30 * s))
         card.place(relx=0.5, rely=0.46, anchor="center")
-        self._logo = logo_image(self, int(96 * s))
+        self._logo = logo_image(self, int(64 * s))
         if self._logo is not None:
-            tk.Label(card, image=self._logo, bg=T.SURFACE).pack(pady=(0, int(10 * s)))
+            tk.Label(card, image=self._logo, bg=T.SURFACE).pack(pady=(0, int(12 * s)))
         base = tkfont.nametofont("TkDefaultFont")
         big = base.copy()
-        big.configure(size=base.cget("size") + 8, weight="bold")
+        big.configure(size=base.cget("size") + 7, weight="bold")
         mid = base.copy()
         mid.configure(size=base.cget("size") + 2)
         self._fonts = (big, mid)
-        tk.Label(card, text="드라이브 지킴이가 잠겨 있어요", font=big, bg=T.SURFACE, fg=T.TEXT).pack()
+        tk.Label(card, text="잠겨 있어요", font=big, bg=T.SURFACE, fg=T.TEXT).pack()
         minutes = int(app.security.data.get("idle_minutes") or 0)
         texts = {
-            "start": "비밀번호를 넣으면 열립니다.",
-            "idle": f"{minutes}분 동안 컴퓨터를 사용하지 않아 잠겼어요.",
+            "start": "비밀번호를 넣으면 열려요.",
+            "idle": f"{minutes}분 동안 컴퓨터를 쓰지 않아 잠겼어요.",
             "sleep": "절전 모드에서 돌아와 잠겼어요.",
-            "manual": "잠금 버튼으로 잠갔어요.",
+            "manual": "잠금 단추로 잠갔어요.",
             "reset": "보안 설정 파일이 없거나 바뀌었어요.\n구글 계정으로 본인 확인을 한 뒤 새 비밀번호를 정해 주세요.",
         }
-        tk.Label(card, text=texts.get(reason, ""), font=mid, bg=T.SURFACE, fg=T.MUTED,
-                 justify="center").pack(pady=(int(4 * s), int(18 * s)))
+        tk.Label(card, text=texts.get(reason, ""), bg=T.SURFACE, fg=T.MUTED,
+                 justify="center").pack(pady=(int(4 * s), int(20 * s)))
         self.msg = tk.StringVar(value="")
         if reason != "reset":
-            self.entry = ttk.Entry(card, show="●", width=26, font=mid, justify="center")
-            self.entry.pack(ipady=int(5 * s))
+            tk.Label(card, text="비밀번호", font=app.f_bold, bg=T.SURFACE, fg=T.TEXT, anchor="w").pack(fill="x")
+            self.entry = ttk.Entry(card, show="●", width=28, font=mid)
+            self.entry.pack(fill="x", ipady=int(5 * s), pady=(int(6 * s), 0))
             self.entry.bind("<Return>", lambda e: self.try_unlock())
-            ttk.Button(card, text="잠금 해제", style="Accent.TButton", command=self.try_unlock).pack(
-                fill="x", pady=(int(10 * s), 0), ipady=int(3 * s))
-            tk.Label(card, textvariable=self.msg, bg=T.SURFACE, fg=T.DANGER).pack(pady=(int(8 * s), 0))
-            link = tk.Label(card, text="비밀번호를 잊었어요", bg=T.SURFACE, fg=T.PRIMARY, cursor="hand2",
+            tk.Label(card, textvariable=self.msg, bg=T.SURFACE, fg=T.DANGER, anchor="w", justify="left",
+                     wraplength=int(300 * s)).pack(fill="x", pady=(int(6 * s), 0))
+            ttk.Button(card, text="잠금 풀기", style="Accent.TButton", command=self.try_unlock).pack(
+                fill="x", pady=(int(8 * s), 0), ipady=int(5 * s))
+            tk.Frame(card, bg=T.BORDER, height=1).pack(fill="x", pady=(int(18 * s), int(8 * s)))
+            link = tk.Label(card, text="비밀번호를 잊었어요", bg=T.SURFACE, fg=T.PRIMARY_DARK, cursor="hand2",
                             font=(base.cget("family"), base.cget("size"), "underline"))
-            link.pack(pady=(int(6 * s), 0))
+            link.pack()
             link.bind("<Button-1>", lambda e: self.forgot())
+            tk.Label(card, text="등록된 구글 계정으로 본인 확인을 한 뒤 새로 정해요", bg=T.SURFACE,
+                     fg=T.MUTED).pack(pady=(int(2 * s), 0))
         else:
             self.entry = None
             ttk.Button(card, text="구글 계정으로 본인 확인", style="Accent.TButton", command=self.forgot).pack(
-                fill="x", ipady=int(3 * s))
-            tk.Label(card, textvariable=self.msg, bg=T.SURFACE, fg=T.DANGER).pack(pady=(int(8 * s), 0))
-        tk.Label(self, text="잠겨 있는 동안에도 열어 둔 파일을 저장하면 드라이브에 계속 올라갑니다.",
-                 bg=T.HEADER, fg=T.HEADER_MUTED).place(relx=0.5, rely=0.96, anchor="s")
+                fill="x", ipady=int(5 * s))
+            tk.Label(card, textvariable=self.msg, bg=T.SURFACE, fg=T.DANGER, wraplength=int(300 * s)).pack(
+                pady=(int(8 * s), 0))
+        tk.Label(self, text="잠긴 동안에도 열어 둔 파일을 저장하면 드라이브에 계속 올라가요.",
+                 bg=T.BG, fg=T.MUTED).place(relx=0.5, rely=0.96, anchor="s")
         try:
             self.grab_set()
         except tk.TclError:
@@ -934,22 +1053,23 @@ class SetupWizard(tk.Toplevel):
         self.resizable(False, False)
         s = app.scale
         self.s = s
-        head = tk.Frame(self, bg=T.HEADER, padx=int(24 * s), pady=int(18 * s))
+        head = tk.Frame(self, bg=T.SURFACE, padx=int(24 * s), pady=int(18 * s))
         head.pack(fill="x")
+        tk.Frame(self, bg=T.BORDER, height=1).pack(fill="x")
         self._logo = logo_image(self, int(48 * s))
         if self._logo is not None:
-            tk.Label(head, image=self._logo, bg=T.HEADER).pack(side="left", padx=(0, int(14 * s)))
+            tk.Label(head, image=self._logo, bg=T.SURFACE).pack(side="left", padx=(0, int(14 * s)))
         base = tkfont.nametofont("TkDefaultFont")
         big = base.copy()
         big.configure(size=base.cget("size") + 7, weight="bold")
         mid = base.copy()
         mid.configure(size=base.cget("size") + 2, weight="bold")
         self._fonts = (big, mid)
-        tt = tk.Frame(head, bg=T.HEADER)
+        tt = tk.Frame(head, bg=T.SURFACE)
         tt.pack(side="left")
-        tk.Label(tt, text="드라이브 지킴이를 시작해요", font=big, bg=T.HEADER, fg="#FFFFFF").pack(anchor="w")
-        tk.Label(tt, text="아래 세 단계를 차례대로 하면 됩니다. 처음 한 번만 하면 돼요.", bg=T.HEADER,
-                 fg=T.HEADER_MUTED).pack(anchor="w")
+        tk.Label(tt, text="드라이브 지킴이를 시작해요", font=big, bg=T.SURFACE, fg=T.TEXT).pack(anchor="w")
+        tk.Label(tt, text="아래 세 단계를 차례대로 하면 됩니다. 처음 한 번만 하면 돼요.", bg=T.SURFACE,
+                 fg=T.MUTED).pack(anchor="w")
         body = tk.Frame(self, bg=T.BG, padx=int(24 * s), pady=int(18 * s))
         body.pack(fill="both", expand=True)
         self.status = {}
@@ -1089,20 +1209,27 @@ class TimeMachineDialog(tk.Toplevel):
         acct = app._acct(account_id)
         self.title("타임머신 - 지운 파일·이전 버전 되돌리기")
         self.transient(app)
-        self.configure(bg=T.BG)
+        self.configure(bg=T.SURFACE)
         s = app.scale
-        self.geometry(f"{int(900 * s)}x{int(560 * s)}")
-        pad = int(8 * s)
-        top = ttk.Frame(self, padding=(pad, pad, pad, 0))
+        self.geometry(f"{int(940 * s)}x{int(600 * s)}")
+        pad = int(14 * s)
+        top = tk.Frame(self, bg=T.SURFACE, padx=int(20 * s), pady=int(14 * s))
         top.pack(fill="x")
-        ttk.Label(top, text=f"계정: {acct.label if acct else ''}").pack(side="left")
+        if app.icon_family:
+            tk.Label(top, text=ICONS["history"][0], font=(app.icon_family, 16), bg=T.PRIMARY_SOFT, fg=T.PRIMARY,
+                     padx=int(9 * s), pady=int(7 * s)).pack(side="left", padx=(0, int(12 * s)))
+        tt = tk.Frame(top, bg=T.SURFACE)
+        tt.pack(side="left", fill="x", expand=True)
+        tk.Label(tt, text="타임머신", font=app.f_title, bg=T.SURFACE, fg=T.TEXT, anchor="w").pack(fill="x")
+        tk.Label(tt, text="지운 파일을 되살리거나, 파일을 예전 버전으로 되돌려요"
+                          + (f" · {acct.label}" if acct else ""), bg=T.SURFACE, fg=T.MUTED, anchor="w").pack(fill="x")
         ttk.Button(top, text="사용법", command=lambda: app.show_help("timemachine")).pack(side="right")
         self.nb = ttk.Notebook(self)
-        self.nb.pack(fill="both", expand=True, padx=pad, pady=pad)
-        self.trash_tab = ttk.Frame(self.nb, padding=pad)
-        self.ver_tab = ttk.Frame(self.nb, padding=pad)
-        self.nb.add(self.trash_tab, text="  지운 파일 되살리기  ")
-        self.nb.add(self.ver_tab, text="  이전 버전으로 되돌리기  ")
+        self.nb.pack(fill="both", expand=True, padx=int(20 * s), pady=(0, int(18 * s)))
+        self.trash_tab = ttk.Frame(self.nb, padding=pad, style="Card.TFrame")
+        self.ver_tab = ttk.Frame(self.nb, padding=pad, style="Card.TFrame")
+        self.nb.add(self.trash_tab, text="지운 파일 되살리기")
+        self.nb.add(self.ver_tab, text="예전 버전으로 되돌리기")
         self._build_trash()
         self._build_versions()
         self.bind("<Escape>", lambda e: self.destroy())
@@ -1133,40 +1260,57 @@ class TimeMachineDialog(tk.Toplevel):
     # ----- 지운 파일 -----
     def _build_trash(self) -> None:
         t = self.trash_tab
-        ttk.Label(t, text="구글 드라이브는 지운 파일을 휴지통에 30일 동안 보관합니다. "
-                          "30일이 지나거나 휴지통을 비우면 되살릴 수 없습니다.\n"
-                          "최근에 고친 파일부터 보입니다. 찾는 파일이 안 보이면 이름 일부를 넣고 [찾기]를 누르세요.",
-                  foreground="#444").pack(anchor="w")
-        row = ttk.Frame(t)
-        row.pack(fill="x", pady=(6, 4))
-        ttk.Label(row, text="이름으로 찾기").pack(side="left")
+        s = self.app.scale
+        fam = self.app.icon_family
+        note = tk.Frame(t, bg=T.SIDEBAR, highlightthickness=1, highlightbackground=T.BORDER,
+                        padx=int(12 * s), pady=int(8 * s))
+        note.pack(fill="x")
+        for icon, color, text in (
+                ("clock", T.MUTED, "지운 파일은 드라이브 휴지통에 30일 동안 남아 있어요. "
+                                   "30일이 지나거나 휴지통을 비우면 되살릴 수 없어요."),
+                ("shield", T.OK, "드라이브 지킴이는 휴지통에서 꺼내기만 하고, 지우지는 못해요.")):
+            line = tk.Frame(note, bg=T.SIDEBAR)
+            line.pack(fill="x", pady=int(1 * s))
+            if fam:
+                tk.Label(line, text=ICONS[icon][0], font=(fam, 10), bg=T.SIDEBAR, fg=color).pack(
+                    side="left", padx=(0, int(8 * s)))
+            tk.Label(line, text=text, bg=T.SIDEBAR, fg="#374151", anchor="w").pack(side="left")
+        row = ttk.Frame(t, style="Card.TFrame")
+        row.pack(fill="x", pady=(int(10 * s), int(2 * s)))
+        ttk.Label(row, text="이름으로 찾기", style="Card.TLabel").pack(side="left")
         self.filter_var = tk.StringVar()
         ent = ttk.Entry(row, textvariable=self.filter_var, width=30)
-        ent.pack(side="left", padx=4)
+        ent.pack(side="left", padx=int(6 * s))
         ent.bind("<Return>", lambda e: self.search_trash())
         ttk.Button(row, text="찾기", command=self.search_trash).pack(side="left", padx=2)
         ttk.Button(row, text="처음부터 다시", command=self._reset_search).pack(side="left", padx=2)
-        btns = ttk.Frame(t)
-        btns.pack(side="bottom", fill="x", pady=(6, 0))
+        ttk.Label(t, text="최근에 고친 파일부터 보여요. 찾는 파일이 안 보이면 이름 일부를 넣고 [찾기]를 누르세요.",
+                  style="CardHint.TLabel").pack(anchor="w", pady=(0, int(8 * s)))
+        btns = ttk.Frame(t, style="Card.TFrame")
+        btns.pack(side="bottom", fill="x", pady=(int(10 * s), 0))
         self.trash_status = tk.StringVar(value="")
-        ttk.Label(btns, textvariable=self.trash_status).pack(side="left")
+        ttk.Label(btns, textvariable=self.trash_status, style="Card.TLabel").pack(side="left")
+        ttk.Button(btns, text="선택한 항목 되살리기", style="Accent.TButton",
+                   command=self.restore_selected).pack(side="right")
         ttk.Button(btns, text="브라우저에서 휴지통 열기",
-                   command=lambda: webbrowser.open("https://drive.google.com/drive/trash")).pack(side="right")
-        ttk.Button(btns, text="선택한 항목 되살리기", command=self.restore_selected).pack(side="right", padx=4)
+                   command=lambda: webbrowser.open("https://drive.google.com/drive/trash")).pack(side="right", padx=4)
         self.btn_more = ttk.Button(btns, text="더 불러오기", command=self._fetch_trash_page)
         self.btn_more.pack(side="right", padx=4)
         self.btn_more.state(["disabled"])
-        s = self.app.scale
-        self.trash_tree = ttk.Treeview(t, columns=("kind", "size", "when"), selectmode="extended")
-        self.trash_tree.heading("#0", text="이름")
-        self.trash_tree.heading("kind", text="유형")
-        self.trash_tree.heading("size", text="크기")
-        self.trash_tree.heading("when", text="수정한 날짜")
-        self.trash_tree.column("#0", width=int(420 * s))
-        self.trash_tree.column("kind", width=int(150 * s))
-        self.trash_tree.column("size", width=int(90 * s), anchor="e")
-        self.trash_tree.column("when", width=int(150 * s))
-        sb = ttk.Scrollbar(t, orient="vertical", command=self.trash_tree.yview)
+        box = tk.Frame(t, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER)
+        box.pack(fill="both", expand=True)
+        self.trash_tree = ttk.Treeview(box, columns=("kind", "size", "when", "left"), selectmode="extended")
+        self.trash_tree.heading("#0", text="이름", anchor="w")
+        self.trash_tree.heading("kind", text="유형", anchor="w")
+        self.trash_tree.heading("size", text="크기", anchor="e")
+        self.trash_tree.heading("when", text="지운 날짜", anchor="w")
+        self.trash_tree.heading("left", text="남은 기간", anchor="e")
+        self.trash_tree.column("#0", width=int(360 * s))
+        self.trash_tree.column("kind", width=int(140 * s))
+        self.trash_tree.column("size", width=int(80 * s), anchor="e")
+        self.trash_tree.column("when", width=int(140 * s))
+        self.trash_tree.column("left", width=int(120 * s), anchor="e")
+        sb = ttk.Scrollbar(box, orient="vertical", command=self.trash_tree.yview)
         self.trash_tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         self.trash_tree.pack(fill="both", expand=True)
@@ -1240,7 +1384,8 @@ class TimeMachineDialog(tk.Toplevel):
             size = "" if gtypes.is_folderish(m) or gtypes.is_google_native(m) else human_size(m.get("size"))
             tree.insert("", "end", iid=m["id"], text="  " + (m.get("name") or ""),
                         image=self.app.icons.get(gtypes.icon_key(m)),
-                        values=(gtypes.kind_label(m), size, fmt_time(when)))
+                        values=(gtypes.kind_label(m), size, fmt_time(when),
+                                days_left_in_trash(m.get("trashedTime") or "")))
 
     def restore_selected(self) -> None:
         ids = list(self.trash_tree.selection())
@@ -1282,32 +1427,35 @@ class TimeMachineDialog(tk.Toplevel):
     # ----- 이전 버전 -----
     def _build_versions(self) -> None:
         v = self.ver_tab
+        s = self.app.scale
         self.ver_title = tk.StringVar(value="파일 목록에서 파일을 오른쪽 클릭 → '이전 버전 보기 (타임머신)'을 고르세요.")
-        ttk.Label(v, textvariable=self.ver_title, font=tkfont.nametofont("TkHeadingFont")).pack(anchor="w")
-        ttk.Label(v, text="구글 드라이브는 일반 파일(한글·Word·Excel 등)의 이전 버전을 30일 동안, 최대 100개까지 보관합니다.\n"
-                          "되돌려도 지금 버전은 기록에 남아서 언제든 다시 돌아올 수 있습니다.",
-                  foreground="#444").pack(anchor="w", pady=(2, 6))
-        btns = ttk.Frame(v)
-        btns.pack(side="bottom", fill="x", pady=(6, 0))
+        ttk.Label(v, textvariable=self.ver_title, style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(v, text="한글·Word·Excel 같은 파일은 이전 버전이 30일 동안, 최대 100개까지 남아요. "
+                          "되돌려도 지금 내용은 기록에 남아서 언제든 다시 돌아올 수 있어요.",
+                  style="CardHint.TLabel").pack(anchor="w", pady=(int(2 * s), int(10 * s)))
+        btns = ttk.Frame(v, style="Card.TFrame")
+        btns.pack(side="bottom", fill="x", pady=(int(10 * s), 0))
         self.ver_status = tk.StringVar(value="")
-        ttk.Label(btns, textvariable=self.ver_status).pack(side="left")
+        ttk.Label(btns, textvariable=self.ver_status, style="Card.TLabel").pack(side="left")
+        self.btn_ver_restore = ttk.Button(btns, text="이 버전으로 되돌리기", style="Accent.TButton",
+                                          command=self.restore_version)
+        self.btn_ver_restore.pack(side="right")
+        self.btn_ver_open = ttk.Button(btns, text="이 버전 열어보기", command=self.open_version)
+        self.btn_ver_open.pack(side="right", padx=4)
         self.btn_ver_browser = ttk.Button(btns, text="브라우저에서 열기", command=self._open_target_browser)
         self.btn_ver_browser.pack(side="right")
-        self.btn_ver_restore = ttk.Button(btns, text="이 버전으로 되돌리기", command=self.restore_version)
-        self.btn_ver_restore.pack(side="right", padx=4)
-        self.btn_ver_open = ttk.Button(btns, text="이 버전 열어보기", command=self.open_version)
-        self.btn_ver_open.pack(side="right")
-        s = self.app.scale
-        self.ver_tree = ttk.Treeview(v, columns=("who", "size", "note"), selectmode="browse")
-        self.ver_tree.heading("#0", text="저장한 때")
-        self.ver_tree.heading("who", text="저장한 사람")
-        self.ver_tree.heading("size", text="크기")
-        self.ver_tree.heading("note", text="")
+        box = tk.Frame(v, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER)
+        box.pack(fill="both", expand=True)
+        self.ver_tree = ttk.Treeview(box, columns=("who", "size", "note"), selectmode="browse")
+        self.ver_tree.heading("#0", text="저장한 때", anchor="w")
+        self.ver_tree.heading("who", text="저장한 사람", anchor="w")
+        self.ver_tree.heading("size", text="크기", anchor="e")
+        self.ver_tree.heading("note", text="", anchor="w")
         self.ver_tree.column("#0", width=int(200 * s))
         self.ver_tree.column("who", width=int(220 * s))
         self.ver_tree.column("size", width=int(100 * s), anchor="e")
         self.ver_tree.column("note", width=int(200 * s))
-        sb = ttk.Scrollbar(v, orient="vertical", command=self.ver_tree.yview)
+        sb = ttk.Scrollbar(box, orient="vertical", command=self.ver_tree.yview)
         self.ver_tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         self.ver_tree.pack(fill="both", expand=True)
@@ -1627,6 +1775,8 @@ class App(tk.Tk):
         self.f_bold.configure(weight="bold")
         self.f_title = base.copy()
         self.f_title.configure(size=base.cget("size") + 4, weight="bold")
+        self.f_section = base.copy()
+        self.f_section.configure(size=base.cget("size") + 2, weight="bold")
         self.configure(bg=T.BG)
         style = ttk.Style(self)
         try:
@@ -1634,7 +1784,7 @@ class App(tk.Tk):
         except tk.TclError:
             pass
         line = base.metrics("linespace")
-        row = max(line + int(10 * s), self.icons.size + 6)
+        row = max(line + int(16 * s), self.icons.size + 12)
         style.configure(".", background=T.BG, foreground=T.TEXT, font=base, bordercolor=T.BORDER,
                         lightcolor=T.BORDER, darkcolor=T.BORDER, troughcolor=T.BG, focuscolor=T.PRIMARY)
         style.configure("TFrame", background=T.BG)
@@ -1642,51 +1792,65 @@ class App(tk.Tk):
         style.configure("Toolbar.TFrame", background=T.SURFACE)
         style.configure("TLabel", background=T.BG, foreground=T.TEXT)
         style.configure("Card.TLabel", background=T.SURFACE, foreground=T.TEXT)
-        style.configure("CardTitle.TLabel", background=T.SURFACE, foreground=T.TEXT, font=self.f_bold)
+        style.configure("CardTitle.TLabel", background=T.SURFACE, foreground=T.TEXT, font=self.f_section)
         style.configure("CardHint.TLabel", background=T.SURFACE, foreground=T.MUTED)
-        style.configure("Crumb.TLabel", background=T.SURFACE, foreground=T.MUTED)
+        style.configure("Crumb.TLabel", background=T.BG, foreground=T.FAINT)
         style.configure("Status.TLabel", background=T.SURFACE, foreground=T.MUTED,
-                        padding=(int(10 * s), int(4 * s)))
-        style.configure("TButton", background=T.SURFACE, foreground=T.TEXT, bordercolor=T.BORDER,
-                        padding=(int(12 * s), int(5 * s)), relief="flat")
+                        padding=(int(14 * s), int(5 * s)))
+        style.configure("TButton", background=T.SURFACE, foreground=T.TEXT, bordercolor=T.BORDER_STRONG,
+                        lightcolor=T.SURFACE, darkcolor=T.SURFACE, padding=(int(12 * s), int(6 * s)), relief="raised")
         style.map("TButton", background=[("disabled", T.BG), ("pressed", T.PRIMARY_SOFT), ("active", T.HOVER)],
-                  foreground=[("disabled", "#94A3B8")], bordercolor=[("active", "#B9CCF5")])
+                  foreground=[("disabled", T.FAINT)], bordercolor=[("active", T.FAINT)],
+                  lightcolor=[("active", T.HOVER)], darkcolor=[("active", T.HOVER)])
         style.configure("Accent.TButton", background=T.PRIMARY, foreground="#FFFFFF", bordercolor=T.PRIMARY,
-                        font=self.f_bold)
-        style.map("Accent.TButton", background=[("disabled", "#A9BFF3"), ("pressed", T.PRIMARY_DARK),
+                        lightcolor=T.PRIMARY, darkcolor=T.PRIMARY, font=self.f_bold)
+        style.map("Accent.TButton", background=[("disabled", "#E5E7EB"), ("pressed", T.PRIMARY_DARK),
                                                 ("active", T.PRIMARY_DARK)],
-                  foreground=[("disabled", "#EEF3FF")], bordercolor=[("active", T.PRIMARY_DARK)])
-        style.configure("Link.TButton", background=T.PRIMARY_SOFT, foreground=T.PRIMARY_DARK, bordercolor=T.PRIMARY_SOFT,
-                        font=self.f_bold, padding=(int(10 * s), int(3 * s)))
-        style.map("Link.TButton", background=[("active", "#C9DBFF")])
-        style.configure("Crumb.TButton", background=T.SURFACE, foreground=T.TEXT, bordercolor=T.SURFACE,
-                        padding=(int(6 * s), int(2 * s)))
-        style.map("Crumb.TButton", background=[("active", T.HOVER)], bordercolor=[("active", T.HOVER)])
-        style.configure("TEntry", fieldbackground=T.SURFACE, bordercolor=T.BORDER, padding=int(4 * s))
+                  foreground=[("disabled", "#6B7280")], bordercolor=[("disabled", "#E5E7EB"),
+                                                                     ("active", T.PRIMARY_DARK)],
+                  lightcolor=[("disabled", "#E5E7EB"), ("active", T.PRIMARY_DARK)],
+                  darkcolor=[("disabled", "#E5E7EB"), ("active", T.PRIMARY_DARK)])
+        style.configure("Link.TButton", background=T.PRIMARY_SOFT, foreground=T.PRIMARY_INK, bordercolor=T.PRIMARY_SOFT,
+                        lightcolor=T.PRIMARY_SOFT, darkcolor=T.PRIMARY_SOFT, font=self.f_bold,
+                        padding=(int(10 * s), int(3 * s)))
+        style.map("Link.TButton", background=[("active", "#D6E2FB")])
+        for name, fg, font in (("Crumb.TButton", T.MUTED, base), ("CrumbCur.TButton", T.TEXT, self.f_bold)):
+            style.configure(name, background=T.BG, foreground=fg, bordercolor=T.BG, lightcolor=T.BG,
+                            darkcolor=T.BG, font=font, padding=(int(6 * s), int(3 * s)))
+            style.map(name, background=[("active", T.BORDER)], bordercolor=[("active", T.BORDER)],
+                      lightcolor=[("active", T.BORDER)], darkcolor=[("active", T.BORDER)])
+        style.configure("TEntry", fieldbackground=T.SURFACE, bordercolor=T.BORDER_STRONG, lightcolor=T.SURFACE,
+                        padding=int(6 * s))
         style.map("TEntry", bordercolor=[("focus", T.PRIMARY)], lightcolor=[("focus", T.PRIMARY)])
         style.configure("TCheckbutton", background=T.BG)
         style.configure("TSpinbox", fieldbackground=T.SURFACE, arrowsize=int(12 * s))
         style.configure("Treeview", background=T.SURFACE, fieldbackground=T.SURFACE, foreground=T.TEXT,
-                        rowheight=row, bordercolor=T.BORDER, borderwidth=0)
-        style.map("Treeview", background=[("selected", T.PRIMARY_SOFT)], foreground=[("selected", "#0F2A6B")])
-        style.configure("Treeview.Heading", background="#F1F5FB", foreground=T.MUTED, font=self.f_bold,
-                        bordercolor=T.BORDER, relief="flat", padding=(int(6 * s), int(5 * s)))
-        style.map("Treeview.Heading", background=[("active", T.HOVER)])
+                        rowheight=row, bordercolor=T.SURFACE, lightcolor=T.SURFACE, darkcolor=T.SURFACE,
+                        borderwidth=0)
+        style.map("Treeview", background=[("selected", T.PRIMARY_SOFT)], foreground=[("selected", T.TEXT)])
+        style.configure("Treeview.Heading", background=T.SURFACE, foreground=T.MUTED, font=self.f_bold,
+                        bordercolor=T.BORDER, lightcolor=T.SURFACE, darkcolor=T.BORDER, relief="flat",
+                        padding=(int(8 * s), int(7 * s)))
+        style.map("Treeview.Heading", background=[("active", T.HOVER)], lightcolor=[("active", T.HOVER)])
         style.configure("Nav.Treeview", background=T.SIDEBAR, fieldbackground=T.SIDEBAR,
-                        rowheight=row + int(4 * s), bordercolor=T.SIDEBAR)
-        style.map("Nav.Treeview", background=[("selected", T.PRIMARY_SOFT)], foreground=[("selected", "#0F2A6B")])
-        style.configure("TNotebook", background=T.BG, bordercolor=T.BORDER)
-        style.configure("TNotebook.Tab", background="#E8EEF8", padding=(int(14 * s), int(6 * s)), bordercolor=T.BORDER)
-        style.map("TNotebook.Tab", background=[("selected", T.SURFACE)], foreground=[("selected", T.PRIMARY_DARK)])
+                        rowheight=row, bordercolor=T.SIDEBAR, lightcolor=T.SIDEBAR, darkcolor=T.SIDEBAR)
+        style.map("Nav.Treeview", background=[("selected", T.PRIMARY_SOFT)], foreground=[("selected", T.PRIMARY_INK)])
+        style.configure("TNotebook", background=T.SURFACE, bordercolor=T.BORDER, lightcolor=T.SURFACE,
+                        darkcolor=T.SURFACE, tabmargins=(0, 0, 0, 0))
+        style.configure("TNotebook.Tab", background=T.BG, foreground=T.MUTED, padding=(int(16 * s), int(8 * s)),
+                        bordercolor=T.BORDER, lightcolor=T.BG, darkcolor=T.BG, font=self.f_bold)
+        style.map("TNotebook.Tab", background=[("selected", T.SURFACE)], foreground=[("selected", T.PRIMARY_INK)],
+                  lightcolor=[("selected", T.SURFACE)], expand=[("selected", (0, 0, 0, 0))])
         style.configure("TPanedwindow", background=T.BG)
-        style.configure("Sash", sashthickness=int(6 * s), gripcount=0, background=T.BG)
-        style.configure("TScrollbar", background="#E2E8F0", troughcolor=T.SURFACE, bordercolor=T.SURFACE,
-                        arrowcolor=T.MUTED, gripcount=0)
-        style.map("TScrollbar", background=[("active", "#CBD5E1")])
+        style.configure("Sash", sashthickness=int(6 * s), gripcount=0, background=T.BG, lightcolor=T.BG,
+                        bordercolor=T.BG)
+        style.configure("TScrollbar", background=T.BORDER, troughcolor=T.SURFACE, bordercolor=T.SURFACE,
+                        lightcolor=T.BORDER, darkcolor=T.BORDER, arrowcolor=T.MUTED, gripcount=0)
+        style.map("TScrollbar", background=[("active", T.BORDER_STRONG)])
         style.configure("TMenubutton", background=T.SURFACE)
         self.option_add("*Menu.background", T.SURFACE)
         self.option_add("*Menu.activeBackground", T.PRIMARY_SOFT)
-        self.option_add("*Menu.activeForeground", "#0F2A6B")
+        self.option_add("*Menu.activeForeground", T.TEXT)
         self.option_add("*Menu.relief", "flat")
         self.option_add("*TCombobox*Listbox.background", T.SURFACE)
         try:
@@ -1700,31 +1864,23 @@ class App(tk.Tk):
 
     def _build_ui(self) -> None:
         s = self.scale
-        pad = int(8 * s)
 
-        # ── 맨 위: 로고·이름 / 계정·잠금·보안·도움말 ──
-        head = tk.Frame(self, bg=T.HEADER, padx=pad, pady=int(6 * s))
+        # ── 맨 위: 로고·이름 / 보안 설정·도움말·잠금 ──
+        head = tk.Frame(self, bg=T.SURFACE, padx=int(14 * s), pady=int(8 * s))
         head.pack(fill="x")
+        tk.Frame(self, bg=T.BORDER, height=1).pack(fill="x")
         self._head_logo = logo_image(self, int(28 * s))
         if self._head_logo is not None:
-            tk.Label(head, image=self._head_logo, bg=T.HEADER).pack(side="left", padx=(int(4 * s), int(8 * s)))
-        tk.Label(head, text="드라이브 지킴이", font=self.f_title, bg=T.HEADER, fg="#FFFFFF").pack(side="left")
-        tk.Label(head, text=f"v{config.VERSION}", bg=T.HEADER, fg=T.HEADER_MUTED).pack(side="left", padx=(int(6 * s), 0),
-                                                                                     pady=(int(4 * s), 0))
-        self.help_btn = IconButton(head, "help", "도움말", self._popup_help, variant="header", app=self)
-        self.help_btn.pack(side="right")
-        self.btn_security = IconButton(head, "shield", "보안 설정", self.open_security, variant="header", app=self)
-        self.btn_security.pack(side="right")
-        self.btn_lock = IconButton(head, "lock", "잠금", lambda: self.lock_now("manual"), variant="header", app=self,
+            tk.Label(head, image=self._head_logo, bg=T.SURFACE).pack(side="left", padx=(0, int(8 * s)))
+        tk.Label(head, text="드라이브 지킴이", font=self.f_title, bg=T.SURFACE, fg=T.TEXT).pack(side="left")
+        self.btn_lock = IconButton(head, "lock", "잠금", lambda: self.lock_now("manual"), variant="accent", app=self,
                                    tooltip="지금 바로 잠그기 (Ctrl+L)")
-        self.btn_lock.pack(side="right")
+        self.btn_lock.pack(side="right", padx=(int(6 * s), 0))
+        self.help_btn = IconButton(head, "help", "도움말", self._popup_help, app=self)
+        self.help_btn.pack(side="right")
+        self.btn_security = IconButton(head, "shield", "보안 설정", self.open_security, app=self)
+        self.btn_security.pack(side="right")
         self.account_var = tk.StringVar(value="")
-        acc = tk.Frame(head, bg=T.HEADER)
-        acc.pack(side="right", padx=(0, int(12 * s)))
-        if self.icon_family:
-            tk.Label(acc, text=ICONS["person"][0], font=(self.icon_family, 10), bg=T.HEADER,
-                     fg=T.HEADER_MUTED).pack(side="left", padx=(0, int(4 * s)))
-        tk.Label(acc, textvariable=self.account_var, bg=T.HEADER, fg="#E3EAFF").pack(side="left")
         self.help_menu = tk.Menu(self, tearoff=False)
         self.help_menu.add_command(label="그림으로 따라 하기 (홈페이지)", command=open_guide)
         self.help_menu.add_command(label="시작 도우미 (열쇠 넣기·로그인)", command=self.open_setup)
@@ -1740,64 +1896,90 @@ class App(tk.Tk):
         self.help_menu.add_command(label="홈페이지 열기", command=lambda: webbrowser.open(config.SITE_URL))
         self.help_menu.add_command(label="드라이브 지킴이 정보", command=lambda: AboutDialog(self))
 
+        # ── 맨 아래: 상태 표시줄 (알림 글 / 필요할 때 나오는 단추 / 지금 계정·버전) ──
+        bar = tk.Frame(self, bg=T.SURFACE)
+        bar.pack(fill="x", side="bottom")
+        tk.Frame(self, bg=T.BORDER, height=1).pack(fill="x", side="bottom")
+        tk.Label(bar, text=f"버전 {config.VERSION}", bg=T.SURFACE, fg=T.MUTED).pack(
+            side="right", padx=(int(12 * s), int(14 * s)))
+        tk.Label(bar, textvariable=self.account_var, bg=T.SURFACE, fg=T.MUTED).pack(side="right")
+        self.login_btn = ttk.Button(bar, text="다시 로그인", style="Accent.TButton", command=self.on_login_button)
+        self.update_btn = ttk.Button(bar, text="새 버전 받기", style="Accent.TButton", command=self._open_update)
+        self.status_var = tk.StringVar(value="")
+        ttk.Label(bar, textvariable=self.status_var, anchor="w", style="Status.TLabel").pack(
+            side="left", fill="x", expand=True)
+        self._login_btn_shown = False
+        self._resume_btn_shown = False
+        self._update_info: dict | None = None
+
+        # ── 가운데: 왼쪽 계정 목록 | 오른쪽 (도구 줄 / 파일 목록 / 편집 중인 파일) ──
+        hpane = ttk.Panedwindow(self, orient="horizontal")
+        hpane.pack(fill="both", expand=True)
+        hpane.add(self._build_nav(hpane), weight=0)
+        right = tk.Frame(hpane, bg=T.BG, padx=int(14 * s), pady=int(10 * s))
+        hpane.add(right, weight=1)
+
+        # 랜섬웨어 의심으로 모든 업로드를 멈췄을 때만 보이는 띠
+        self.pause_banner = tk.Frame(right, bg=T.WARN_BG, highlightthickness=1, highlightbackground=T.WARN_LINE,
+                                     padx=int(12 * s), pady=int(10 * s))
+        if self.icon_family:
+            tk.Label(self.pause_banner, text=ICONS["warning"][0], font=(self.icon_family, 16), bg=T.WARN_BG,
+                     fg=T.WARN).pack(side="left", padx=(int(2 * s), int(12 * s)))
+        self.resume_btn = IconButton(self.pause_banner, "", "업로드 다시 시작", self.resume_uploads, variant="warn",
+                                     app=self)
+        self.resume_btn.pack(side="right", padx=(int(12 * s), 0))
+        btxt = tk.Frame(self.pause_banner, bg=T.WARN_BG)
+        btxt.pack(side="left", fill="x", expand=True)
+        tk.Label(btxt, text="드라이브로 올리기를 모두 멈췄어요", font=self.f_bold, bg=T.WARN_BG, fg=T.WARN_INK,
+                 anchor="w").pack(fill="x")
+        tk.Label(btxt, text="여러 파일이 짧은 시간에 손상되거나 암호화된 것 같아요. 드라이브의 원본은 그대로예요. "
+                            "인터넷을 끊고 백신 검사를 먼저 해 주세요.",
+                 bg=T.WARN_BG, fg=T.WARN_INK, anchor="w", justify="left", wraplength=int(640 * s)).pack(fill="x")
+
         # ── 도구 줄: 이동 / 경로 / 검색 / 타임머신 ──
-        tool = ttk.Frame(self, style="Toolbar.TFrame", padding=(pad, int(5 * s)))
-        tool.pack(fill="x")
-        tk.Frame(self, bg=T.BORDER, height=1).pack(fill="x")
-        self.btn_back = IconButton(tool, "back", "", self.go_back, tooltip="뒤로 (Alt+←)", app=self)
+        tool = tk.Frame(right, bg=T.BG)
+        tool.pack(fill="x", pady=(0, int(8 * s)))
+        self.toolbar = tool
+        self.btn_back = IconButton(tool, "back", "", self.go_back, variant="bar", tooltip="뒤로 (Alt+←)", app=self)
         self.btn_back.pack(side="left")
-        self.btn_fwd = IconButton(tool, "forward", "", self.go_forward, tooltip="앞으로 (Alt+→)", app=self)
+        self.btn_fwd = IconButton(tool, "forward", "", self.go_forward, variant="bar", tooltip="앞으로 (Alt+→)",
+                                  app=self)
         self.btn_fwd.pack(side="left")
-        self.btn_up = IconButton(tool, "up", "", self.go_up, tooltip="위 폴더로 (Backspace)", app=self)
+        self.btn_up = IconButton(tool, "up", "", self.go_up, variant="bar", tooltip="위 폴더로 (Backspace)", app=self)
         self.btn_up.pack(side="left")
-        IconButton(tool, "refresh", "", self.refresh, tooltip="새로고침 (F5)", app=self).pack(side="left")
-        tk.Frame(tool, bg=T.BORDER, width=1, height=int(22 * s)).pack(side="left", padx=int(8 * s))
-        self.btn_tm = IconButton(tool, "history", "타임머신", lambda: self.open_time_machine(), app=self,
-                                 tooltip="지운 파일 되살리기 · 예전 버전으로 되돌리기")
+        IconButton(tool, "refresh", "", self.refresh, variant="bar", tooltip="새로고침 (F5)", app=self).pack(side="left")
+        self.btn_tm = IconButton(tool, "history", "타임머신", lambda: self.open_time_machine(), variant="outline",
+                                 app=self, tooltip="지운 파일 되살리기 · 예전 버전으로 되돌리기")
         self.btn_tm.pack(side="right")
-        sbox = tk.Frame(tool, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER,
+        sbox = tk.Frame(tool, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER_STRONG,
                         highlightcolor=T.PRIMARY)
-        sbox.pack(side="right", padx=(0, int(10 * s)))
+        sbox.pack(side="right", padx=(int(8 * s), int(8 * s)))
         if self.icon_family:
             tk.Label(sbox, text=ICONS["search"][0], font=(self.icon_family, 10), bg=T.SURFACE,
-                     fg=T.MUTED).pack(side="left", padx=(int(8 * s), 0))
+                     fg=T.MUTED).pack(side="left", padx=(int(10 * s), 0))
         self.search_var = tk.StringVar()
-        self.search = tk.Entry(sbox, textvariable=self.search_var, width=26, relief="flat", bg=T.SURFACE,
+        self.search = tk.Entry(sbox, textvariable=self.search_var, width=28, relief="flat", bg=T.SURFACE,
                                fg=T.TEXT, insertbackground=T.TEXT, font=tkfont.nametofont("TkDefaultFont"))
-        self.search.pack(side="left", padx=int(6 * s), pady=int(5 * s))
-        self._search_hint = "드라이브에서 찾기 (Ctrl+F)"
+        self.search.pack(side="left", padx=int(8 * s), pady=int(7 * s))
+        self._search_hint = "파일 이름으로 찾기 (Ctrl+F)"
         self._search_placeholder(True)
         self.search.bind("<FocusIn>", lambda e: self._search_placeholder(False))
         self.search.bind("<FocusOut>", lambda e: self._search_placeholder(not self.search_var.get().strip()))
         self.search.bind("<Return>", self._on_search)
         self.search.bind("<Escape>", lambda e: (self.search_var.set(""), self.tree.focus_set()))
-        self.crumbs = ttk.Frame(tool, style="Toolbar.TFrame")
-        self.crumbs.pack(side="left", fill="x", expand=True)
+        self.crumbs = ttk.Frame(tool)
+        self.crumbs.pack(side="left", fill="x", expand=True, padx=(int(6 * s), 0))
 
-        # ── 가운데: 왼쪽 계정 목록 + 파일 목록 / 아래: 편집 중인 파일 ──
-        vpane = ttk.Panedwindow(self, orient="vertical")
+        # ── 파일 목록 / 아래: 편집 중인 파일 ──
+        vpane = ttk.Panedwindow(right, orient="vertical")
         vpane.pack(fill="both", expand=True)
-        hpane = ttk.Panedwindow(vpane, orient="horizontal")
-        vpane.add(hpane, weight=4)
 
-        navf = tk.Frame(hpane, bg=T.SIDEBAR)
-        tk.Label(navf, text="내 드라이브 계정", bg=T.SIDEBAR, fg=T.MUTED, font=self.f_bold, anchor="w").pack(
-            fill="x", padx=int(14 * s), pady=(int(12 * s), int(4 * s)))
-        self.nav = ttk.Treeview(navf, show="tree", selectmode="browse", style="Nav.Treeview")
-        self.nav.column("#0", width=int(220 * s))
-        self.nav.pack(fill="both", expand=True, padx=(int(6 * s), 0))
-        self.nav.bind("<ButtonRelease-1>", self._on_nav_click)
-        self.nav.bind("<Return>", self._on_nav_click)
-        self.nav.bind("<Button-3>", self._on_nav_menu)
-        hpane.add(navf, weight=0)
-        self.nav_menu = tk.Menu(self, tearoff=False)
-
-        mainf = tk.Frame(hpane, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER)
+        mainf = tk.Frame(vpane, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER)
         self.tree = ttk.Treeview(mainf, columns=("modified", "kind", "size"), selectmode="browse")
-        self.tree.heading("#0", text="이름", command=lambda: self._sort_by("name"))
-        self.tree.heading("modified", text="수정한 날짜", command=lambda: self._sort_by("modified"))
-        self.tree.heading("kind", text="유형", command=lambda: self._sort_by("kind"))
-        self.tree.heading("size", text="크기", command=lambda: self._sort_by("size"))
+        self.tree.heading("#0", text="이름", anchor="w", command=lambda: self._sort_by("name"))
+        self.tree.heading("modified", text="수정한 날짜", anchor="w", command=lambda: self._sort_by("modified"))
+        self.tree.heading("kind", text="유형", anchor="w", command=lambda: self._sort_by("kind"))
+        self.tree.heading("size", text="크기", anchor="e", command=lambda: self._sort_by("size"))
         widths = self.ui_settings.get("columns") or {}
         self.tree.column("#0", width=int(widths.get("#0", 420 * s)), minwidth=int(120 * s))
         self.tree.column("modified", width=int(widths.get("modified", 140 * s)), minwidth=int(60 * s))
@@ -1808,7 +1990,7 @@ class App(tk.Tk):
         self.tree.configure(yscrollcommand=ysb.set)
         self.tree.pack(side="left", fill="both", expand=True)
         ysb.pack(side="right", fill="y")
-        hpane.add(mainf, weight=1)
+        vpane.add(mainf, weight=3)
 
         self.tree.bind("<Double-1>", self._on_double_click)
         self.tree.bind("<Return>", lambda e: self.open_selected())
@@ -1823,22 +2005,31 @@ class App(tk.Tk):
         self.menu.add_separator()
         self.menu.add_command(label="새로고침", command=self.refresh)
 
-        bottom = tk.Frame(vpane, bg=T.BG, padx=pad, pady=int(6 * s))
+        bottom = tk.Frame(vpane, bg=T.BG)
         vpane.add(bottom, weight=1)
         card = tk.Frame(bottom, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER)
-        card.pack(fill="both", expand=True)
-        ch = tk.Frame(card, bg=T.SURFACE, padx=int(12 * s), pady=int(8 * s))
+        card.pack(fill="both", expand=True, pady=(int(6 * s), 0))
+        ch = tk.Frame(card, bg=T.SURFACE, padx=int(14 * s), pady=int(8 * s))
         ch.pack(fill="x")
-        tk.Label(ch, text="편집 중인 파일", font=self.f_bold, bg=T.SURFACE, fg=T.TEXT).pack(side="left")
-        tk.Label(ch, text="  Word·Excel·한글에서 저장(Ctrl+S)하면 자동으로 드라이브에 올라가요", bg=T.SURFACE,
-                 fg=T.MUTED).pack(side="left")
-        IconButton(ch, "clean", "작업 폴더 정리", self.cleanup_work, app=self,
-                   tooltip="다 쓴 파일의 PC 사본 지우기 (열려 있거나 올리기 전인 파일은 남겨 둠)").pack(side="right")
+        ct = tk.Frame(ch, bg=T.SURFACE)
+        ct.pack(side="left", fill="x", expand=True)
+        ctop = tk.Frame(ct, bg=T.SURFACE)
+        ctop.pack(fill="x")
+        tk.Label(ctop, text="편집 중인 파일", font=self.f_section, bg=T.SURFACE, fg=T.TEXT).pack(side="left")
+        self.track_count = tk.Label(ctop, text="0", font=self.f_bold, bg=T.BG, fg=T.TEXT, padx=int(7 * s))
+        self.track_count.pack(side="left", padx=(int(8 * s), 0))
+        tk.Label(ct, text="한글·Word·Excel에서 Ctrl+S로 저장하면 1~3초 뒤 드라이브 원본이 바뀌어요", bg=T.SURFACE,
+                 fg=T.MUTED, anchor="w").pack(fill="x")
+        IconButton(ch, "clean", "작업 폴더 정리", self.cleanup_work, variant="outline", app=self,
+                   tooltip="다 쓴 파일의 PC 사본 지우기 (열려 있거나 올리기 전인 파일은 남겨 둠)").pack(
+            side="right", padx=(int(6 * s), 0))
         IconButton(ch, "folder", "파일 위치", self.reveal_selected_track, app=self).pack(side="right")
         IconButton(ch, "open", "파일 열기", self.open_selected_track, app=self).pack(side="right")
+        tk.Frame(card, bg=T.BORDER, height=1).pack(fill="x")
         tbody = tk.Frame(card, bg=T.SURFACE)
         tbody.pack(fill="both", expand=True)
-        self.track_tree = ttk.Treeview(tbody, columns=("account", "status"), height=5, selectmode="browse")
+        self.track_tree = ttk.Treeview(tbody, columns=("account", "status"), height=5, selectmode="browse",
+                                       show="tree")
         self.track_tree.heading("#0", text="파일")
         self.track_tree.heading("account", text="계정")
         self.track_tree.heading("status", text="상태")
@@ -1858,20 +2049,7 @@ class App(tk.Tk):
         self.track_menu.add_command(label="이전 버전 보기 (타임머신)", command=self.versions_of_selected_track)
         self.track_menu.add_separator()
         self.track_menu.add_command(label="그래도 업로드 (보류 풀기)", command=self.force_selected_track)
-
-        # ── 맨 아래: 상태 표시줄 ──
-        bar = ttk.Frame(self, style="Toolbar.TFrame")
-        bar.pack(fill="x", side="bottom", before=vpane)
-        tk.Frame(self, bg=T.BORDER, height=1).pack(fill="x", side="bottom", before=vpane)
-        self.login_btn = ttk.Button(bar, text="다시 로그인", style="Accent.TButton", command=self.on_login_button)
-        self.resume_btn = ttk.Button(bar, text="업로드 다시 시작", style="Accent.TButton", command=self.resume_uploads)
-        self.update_btn = ttk.Button(bar, text="새 버전 받기", style="Accent.TButton", command=self._open_update)
-        self.status_var = tk.StringVar(value="")
-        ttk.Label(bar, textvariable=self.status_var, anchor="w", style="Status.TLabel").pack(
-            side="left", fill="x", expand=True)
-        self._login_btn_shown = False
-        self._resume_btn_shown = False
-        self._update_info: dict | None = None
+        self.track_tree.tag_configure("alert", background=T.WARN_BG, foreground=T.WARN_INK)
 
         self.bind_all("<F5>", lambda e: self._when_unlocked(self.refresh))
         self.bind_all("<Alt-Left>", lambda e: self._when_unlocked(self.go_back))
@@ -1882,6 +2060,43 @@ class App(tk.Tk):
         self.bind_all("<Control-l>", lambda e: self.lock_now("manual"))
         self.bind_all("<Control-L>", lambda e: self.lock_now("manual"))
         self.tree.focus_set()
+
+    def _build_nav(self, parent) -> tk.Frame:
+        """왼쪽: 계정별 내 드라이브·공유 문서함·공유 드라이브 / 지키는 중 안내 / 계정 추가."""
+        s = self.scale
+        navf = tk.Frame(parent, bg=T.SIDEBAR)
+        tk.Frame(navf, bg=T.BORDER, width=1).pack(side="right", fill="y")
+        inner = tk.Frame(navf, bg=T.SIDEBAR, padx=int(10 * s), pady=int(12 * s))
+        inner.pack(fill="both", expand=True)
+        tk.Label(inner, text="계정", bg=T.SIDEBAR, fg=T.MUTED, font=self.f_bold, anchor="w").pack(
+            fill="x", padx=int(6 * s), pady=(0, int(4 * s)))
+        self.btn_add = IconButton(inner, "add", "계정 추가", self.add_account, variant="outline", app=self,
+                                  tooltip="다른 구글 계정 넣기 (학교 계정 등)")
+        self.btn_add.pack(side="bottom", fill="x")
+        guard = tk.Frame(inner, bg=T.SURFACE, highlightthickness=1, highlightbackground=T.BORDER,
+                         padx=int(12 * s), pady=int(10 * s))
+        guard.pack(side="bottom", fill="x", pady=(int(10 * s), int(10 * s)))
+        gt = tk.Frame(guard, bg=T.SURFACE)
+        gt.pack(fill="x")
+        if self.icon_family:
+            tk.Label(gt, text=ICONS["shield"][0], font=(self.icon_family, 11), bg=T.SURFACE, fg=T.OK).pack(
+                side="left", padx=(0, int(6 * s)))
+        tk.Label(gt, text="안전하게 지키는 중", font=self.f_bold, bg=T.SURFACE, fg=T.OK).pack(side="left")
+        wrap = int(190 * s)
+        tk.Label(guard, text="드라이브 파일 지우기·공유 바꾸기는 막혀 있어요", bg=T.SURFACE, fg=T.MUTED,
+                 justify="left", anchor="w", wraplength=wrap).pack(fill="x", pady=(int(4 * s), 0))
+        self.guard_lock_var = tk.StringVar(value="")
+        tk.Label(guard, textvariable=self.guard_lock_var, bg=T.SURFACE, fg=T.MUTED, justify="left", anchor="w",
+                 wraplength=wrap).pack(fill="x", pady=(int(2 * s), 0))
+        self.nav = ttk.Treeview(inner, show="tree", selectmode="browse", style="Nav.Treeview")
+        self.nav.column("#0", width=int(220 * s))
+        self.nav.tag_configure("acct", font=self.f_bold)
+        self.nav.pack(fill="both", expand=True)
+        self.nav.bind("<ButtonRelease-1>", self._on_nav_click)
+        self.nav.bind("<Return>", self._on_nav_click)
+        self.nav.bind("<Button-3>", self._on_nav_menu)
+        self.nav_menu = tk.Menu(self, tearoff=False)
+        return navf
 
     def _search_placeholder(self, show: bool) -> None:
         if show:
@@ -1963,10 +2178,10 @@ class App(tk.Tk):
 
     def _show_resume_button(self, show: bool) -> None:
         if show and not self._resume_btn_shown:
-            self.resume_btn.pack(side="right", padx=4, pady=2)
+            self.pause_banner.pack(fill="x", pady=(0, int(10 * self.scale)), before=self.toolbar)
             self._resume_btn_shown = True
         elif not show and self._resume_btn_shown:
-            self.resume_btn.pack_forget()
+            self.pause_banner.pack_forget()
             self._resume_btn_shown = False
 
     def _focus_search(self) -> None:
@@ -2014,7 +2229,14 @@ class App(tk.Tk):
         self._last_activity = time.monotonic()
 
     def _update_lock_button(self) -> None:
-        self.btn_lock.state(["!disabled"] if self.security.active else ["disabled"])
+        sec = self.security
+        self.btn_lock.state(["!disabled"] if sec.active else ["disabled"])
+        if not sec.active:
+            text = "비밀번호 잠금은 꺼져 있어요 ([보안 설정]에서 켜요)"
+        else:
+            minutes = int(sec.data.get("idle_minutes") or 0)
+            text = f"{minutes}분 동안 쓰지 않으면 저절로 잠겨요" if minutes else "비밀번호 잠금이 켜져 있어요"
+        self.guard_lock_var.set(text)
 
     def lock_now(self, reason: str = "manual") -> None:
         if self.lock is not None or self._closing:
@@ -2461,7 +2683,7 @@ class App(tk.Tk):
         self._sync_nav_selection()
         self._update_account_label()
         if loc.kind == "none":
-            self._show_placeholder("왼쪽의 '+ 계정 추가'를 눌러 구글 계정으로 로그인하세요.")
+            self._show_placeholder("왼쪽 아래 [계정 추가]를 눌러 구글 계정으로 로그인하세요.")
             self._set_login_button(False)
             return
         self._set_login_button(loc.account in self.auth_trouble)
@@ -2615,7 +2837,7 @@ class App(tk.Tk):
             name = stack[i].name
             if len(name) > 30:
                 name = name[:28] + "…"
-            ttk.Button(self.crumbs, text=name, style="Crumb.TButton",
+            ttk.Button(self.crumbs, text=name, style="CrumbCur.TButton" if i == len(stack) - 1 else "Crumb.TButton",
                        command=lambda i=i: self.navigate(self.stack[:i + 1])).pack(side="left", padx=1)
 
     def _update_account_label(self) -> None:
@@ -2628,12 +2850,11 @@ class App(tk.Tk):
         nav.delete(*nav.get_children())
         for acct in self.store.accounts:
             aid = f"a:{acct.id}"
-            nav.insert("", "end", iid=aid, text=" " + self._acct_label(acct), image=self.icons.get("drive"),
-                       open=True)
-            nav.insert(aid, "end", iid=f"l:{acct.id}:mydrive", text=" 내 드라이브", image=self.icons.get("folder"))
-            nav.insert(aid, "end", iid=f"l:{acct.id}:shared", text=" 공유 문서함", image=self.icons.get("sc_folder"))
-            nav.insert(aid, "end", iid=f"l:{acct.id}:drives", text=" 공유 드라이브", image=self.icons.get("drive"))
-        nav.insert("", "end", iid="add", text=" + 계정 추가")
+            nav.insert("", "end", iid=aid, text="  " + self._acct_label(acct), image=self.icons.get("acct_off"),
+                       open=True, tags=("acct",))
+            nav.insert(aid, "end", iid=f"l:{acct.id}:mydrive", text="  내 드라이브", image=self.icons.get("folder"))
+            nav.insert(aid, "end", iid=f"l:{acct.id}:shared", text="  공유 문서함", image=self.icons.get("sc_folder"))
+            nav.insert(aid, "end", iid=f"l:{acct.id}:drives", text="  공유 드라이브", image=self.icons.get("drive"))
         self._sync_nav_selection()
         self._update_track_columns()
 
@@ -2641,11 +2862,15 @@ class App(tk.Tk):
         for acct in self.store.accounts:
             iid = f"a:{acct.id}"
             if self.nav.exists(iid):
-                self.nav.item(iid, text=" " + self._acct_label(acct))
+                self.nav.item(iid, text="  " + self._acct_label(acct))
         self._update_crumbs()
 
     def _sync_nav_selection(self) -> None:
         first = self.stack[0]
+        for acct in self.store.accounts:   # 지금 쓰는 계정만 파란 동그라미
+            iid = f"a:{acct.id}"
+            if self.nav.exists(iid):
+                self.nav.item(iid, image=self.icons.get("acct_on" if acct.id == first.account else "acct_off"))
         target = None
         if first.account:
             what = {"root": "mydrive", "shared": "shared", "drives": "drives"}.get(first.id)
@@ -2666,9 +2891,7 @@ class App(tk.Tk):
             row = self.nav.focus()
         if not row:
             return
-        if row == "add":
-            self.add_account()
-        elif row.startswith("a:"):
+        if row.startswith("a:"):
             self.navigate([loc_mydrive(row[2:])])
         elif row.startswith("l:"):
             _, aid, what = row.split(":", 2)
@@ -3091,12 +3314,14 @@ class App(tk.Tk):
             self.track_keys[iid] = (acct.id, r["key"])
             old = self.track_status.get(iid)
             values = (acct.short, r["status"])
+            kind = track_kind(r["status"])
+            look = {"text": "  " + r["name"], "values": values, "image": self.icons.get("st_" + kind),
+                    "tags": ("alert",) if kind == "alert" else ()}
             if tv.exists(iid):
-                if old != r["status"] or tv.item(iid, "text") != r["name"]:
-                    tv.item(iid, text=r["name"], values=values)
+                if old != r["status"] or tv.item(iid, "text") != look["text"]:
+                    tv.item(iid, **look)
             else:
-                tv.insert("", "end", iid=iid, text=r["name"], values=values,
-                          image=self.icons.get(gtypes.icon_key({"name": r["name"]})))
+                tv.insert("", "end", iid=iid, **look)
             if old is not None and old != r["status"]:
                 self.set_status(f"{r['name']}: {r['status']}")
             self.track_status[iid] = r["status"]
@@ -3108,6 +3333,7 @@ class App(tk.Tk):
         for index, iid in enumerate(wanted):
             if tv.index(iid) != index:
                 tv.move(iid, "", index)
+        self.track_count.configure(text=str(len(wanted)))
         self._show_resume_button(any(sm.paused for sm in self.syncs.values()))
 
     def _selected_track(self) -> tuple[str, dict] | None:
