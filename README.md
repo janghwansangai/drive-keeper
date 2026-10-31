@@ -45,7 +45,10 @@
 > 내 파일은 **내 컴퓨터 ↔ Google** 사이로만 오가고 다른 서버를 거치지 않습니다.
 > 열쇠 만드는 법은 [따라 하기 안내](https://janghwansangai.github.io/drive-keeper/start.html#key)에서 한 단계씩 그림으로 볼 수 있어요.
 
-새 버전이 나오면 프로그램이 알려 줘요. 새 zip의 **설치하기**를 다시 누르면 설정 · 로그인은 그대로 남습니다.
+새 버전이 나오면 프로그램 오른쪽 아래에 **[새 버전 … 업데이트]** 가 생겨요. **[지금 업데이트]** 를 누르면 받아서 설치하고 다시 켜져요.
+(새 zip의 **설치하기**를 다시 눌러도 되고, 어느 쪽이든 설정 · 로그인은 그대로 남습니다.)
+
+오류를 찾았거나 바라는 점이 있으면 프로그램의 **[도움말] → [오류 신고 · 개선 의견 보내기]** 나 홈페이지 오른쪽 아래 **오류 신고** 단추로 보내 주세요.
 
 ## 개발자용
 
@@ -65,12 +68,14 @@ python -m venv .venv
 | `sync.py` | 저장 감지 → 업로드, 충돌 · 재시도 · 랜섬웨어 의심 보류 |
 | `security.py` · `protect.py` | 비밀번호(scrypt) · 잠금, Windows DPAPI로 로그인 정보 암호화 |
 | `accounts.py` · `config.py` | 여러 계정, 데이터 폴더(`%USERPROFILE%\DriveKeeper`) |
-| `updater.py` | GitHub Releases에서 새 버전 확인 |
+| `updater.py` | GitHub Releases에서 새 버전 확인, 한 번에 업데이트 (zip SHA-256 확인 → 종료 후 `install.ps1 -Quiet` → 다시 켬) |
 | `installer/` | 설치 · 지우기 스크립트 (현재 사용자에게만 설치) |
 | `docs/` | 홈페이지 (GitHub Pages). `start.html` = 따라 하기 안내 (인쇄하면 설명서 PDF: `tools/build_manual.py`) |
 | `tools/` | 화면 사진·누를 곳 자리(`make_screenshots.py` → `docs/assets/shots/spots.js`), PDF, 배포 zip |
 
 새 버전 내기: `config.VERSION` 올리기 → exe · zip 만들기 →
 `gh release create vX.Y.Z release/DriveKeeper.zip` (파일 이름은 꼭 `DriveKeeper.zip`)
+
+만든 사람: **다있쌤 로디**
 
 Google Drive는 Google LLC의 상표입니다. 이 프로그램은 Google과 관련이 없는 개인 프로젝트입니다.
