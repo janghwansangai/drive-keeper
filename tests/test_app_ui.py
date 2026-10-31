@@ -331,6 +331,33 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(app_mod.human_size(1536), "1.5 KB")
         self.assertEqual(app_mod.human_size(None), "")
 
+    def test_track_kind(self):
+        import sync
+        cases = {"드라이브에 저장됨 14:32:10": "saved", "드라이브와 같음": "saved", "업로드 중...": "uploading",
+                 sync.STATUS_IDLE: "open", sync.STATUS_NATIVE: "copy", sync.STATUS_READONLY: "copy",
+                 "업로드 실패: 응답 없음 - 4초 후 다시 시도": "wait", "파일이 잠겨 있어 기다리는 중...": "wait",
+                 "업로드 실패: 권한 없음 (다시 저장하면 재시도)": "alert", sync.STATUS_HELD: "alert",
+                 "충돌 사본으로 저장됨 10:00:00": "alert", "로컬 파일이 없습니다": "missing"}
+        for status, kind in cases.items():
+            self.assertEqual(app_mod.track_kind(status), kind, status)
+
+    def test_bug_report_url(self):
+        url = app_mod.bug_report_url("메인 화면 · 내 드라이브")
+        self.assertTrue(url.startswith(config.BUG_REPORT_URL + "?app=drive-keeper&v="))
+        self.assertIn("v=" + config.VERSION, url)
+        self.assertIn("where=%EB%A9%94%EC%9D%B8%20", url)   # 한글·빈칸은 %로 바꿔 붙임
+        self.assertNotIn("where", app_mod.bug_report_url())
+
+    def test_days_left_in_trash(self):
+        now = app_mod._dt.datetime.now(app_mod._dt.timezone.utc)
+
+        def ago(days):
+            return (now - app_mod._dt.timedelta(days=days, minutes=1)).isoformat().replace("+00:00", "Z")
+        self.assertEqual(app_mod.days_left_in_trash(ago(0)), "30일")
+        self.assertEqual(app_mod.days_left_in_trash(ago(28)), "2일 (곧 지워져요)")
+        self.assertEqual(app_mod.days_left_in_trash(ago(40)), "0일 (곧 지워져요)")
+        self.assertEqual(app_mod.days_left_in_trash(""), "")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

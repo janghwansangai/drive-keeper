@@ -46,7 +46,7 @@ try {
     $un = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$dest\uninstall.ps1`""
     Set-ItemProperty $key -Name DisplayName -Value "드라이브 지킴이"
     Set-ItemProperty $key -Name DisplayIcon -Value $target
-    Set-ItemProperty $key -Name Publisher -Value "DriveKeeper"
+    Set-ItemProperty $key -Name Publisher -Value "다있쌤 로디"
     Set-ItemProperty $key -Name InstallLocation -Value $dest
     Set-ItemProperty $key -Name UninstallString -Value $un
     Set-ItemProperty $key -Name QuietUninstallString -Value "$un -Quiet"
