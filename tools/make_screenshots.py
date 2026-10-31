@@ -181,7 +181,7 @@ def main() -> int:
     a._refresh_track_view()
     pump(0.4)
     f = capture(a, "main")
-    tspot("main_add", f, a.nav, "add")
+    wspot("main_add", f, a.btn_add)
     wspot("main_security", f, a.btn_security)
     wspot("main_lock", f, a.btn_lock)
     wspot("main_tm", f, a.btn_tm)
