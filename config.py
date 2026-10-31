@@ -11,11 +11,16 @@ from pathlib import Path
 
 APP_NAME = "DriveKeeper"          # 데이터 폴더·exe 이름
 APP_TITLE = "드라이브 지킴이"       # 창 제목 (중복 실행 확인에도 씀)
-VERSION = "2.0.1"
+VERSION = "2.1.0"
+AUTHOR = "다있쌤 로디"               # 만든 사람 (정보 창·홈페이지·Windows [앱] 목록의 게시자)
 GITHUB_REPO = "janghwansangai/drive-keeper"
 SITE_URL = "https://janghwansangai.github.io/drive-keeper/"
 GUIDE_URL = SITE_URL + "start.html"   # 그림으로 한 단계씩 보여 주는 따라 하기 안내 (#install #key #connect #add)
 RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases/latest"
+# 오류 신고: 사용자가 직접 적어 보내는 내용만 만든 사람의 '오류 취합 센터'로 간다 (비밀 키 없음)
+BUG_REPORT_URL = ("https://script.google.com/macros/s/AKfycbxsRD7vRlEP9oKlvlDDPww8cYaDadTTIp1KrqYWSVU5qE5_gUh3bNUs"
+                  "kBhHDlXH6FskvA/exec")
+BUG_REPORT_APP = "drive-keeper"
 
 # 드라이브 전체 읽기/쓰기 권한 (파일 열기·수정 저장에 필요)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
