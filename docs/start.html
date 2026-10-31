@@ -11,6 +11,8 @@
 <meta name="theme-color" content="#0F1E4F">
 <link rel="icon" href="assets/favicon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<!-- 오류 신고: 아래 '이전·다음' 줄을 가리지 않게 떠 있는 단추는 끄고, 맨 위·막혔어요의 [오류 신고]로 연다 -->
+<script src="https://script.google.com/macros/s/AKfycbxsRD7vRlEP9oKlvlDDPww8cYaDadTTIp1KrqYWSVU5qE5_gUh3bNUskBhHDlXH6FskvA/exec?asset=widget.js" data-app="drive-keeper" data-version="2.1.0" data-color="#2563EB" data-button="false" defer></script>
 <style>
   :root {
     --navy: #0F1E4F; --navy2: #13245E; --blue: #2563EB; --blue-d: #1D4ED8; --soft: #EEF4FF;
@@ -33,7 +35,9 @@
   .brand img { width: 28px; height: 28px; }
   .brand span { color: #9FB2E6; font-weight: 600; font-size: 14px; }
   .head .home { margin-left: auto; color: #C7D3F7; font-size: 14.5px; font-weight: 600; text-decoration: none; }
-  .head .home:hover { color: #fff; }
+  .head .home:hover, .head .report:hover { color: #fff; }
+  .head .report { background: none; border: 0; padding: 0; font: inherit; color: #C7D3F7; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+  .help-report { margin-top: 10px; font: inherit; font-weight: 700; color: #fff; background: var(--blue); border: 0; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
   .rail { background: #fff; border-bottom: 1px solid var(--line); }
   .rail .wrap { display: flex; gap: 8px; overflow-x: auto; padding-top: 10px; padding-bottom: 10px; scrollbar-width: none; }
   .rail .wrap::-webkit-scrollbar { display: none; }
@@ -269,6 +273,7 @@
   @media screen and (max-width: 560px) {
     .wrap { padding: 0 16px; }
     .head .home { display: none; }
+    .head .report { margin-left: auto; }
     ol.do > li { font-size: 17px; grid-template-columns: 32px 1fr; gap: 11px; }
     ol.do > li::before { width: 32px; height: 32px; font-size: 15px; border-radius: 10px; }
     .nav .wrap { height: 74px; gap: 10px; }
@@ -282,7 +287,7 @@
   @media print {
     @page { size: A4; margin: 12mm 12mm 13mm; }
     body { background: #fff; font-size: 10.5pt; }
-    .top, .nav, .toast, .noprint, .step.hello { display: none !important; }
+    .top, .nav, .toast, .noprint, .step.hello, [data-bug-reporter] { display: none !important; }
     .print-only { display: block; }
     main { padding: 0; }
     .wrap { max-width: none; padding: 0; }
@@ -347,6 +352,7 @@
   <div class="head"><div class="wrap">
     <a class="brand" href="index.html"><img src="assets/logo.svg" alt="">드라이브 지킴이 <span>따라 하기</span></a>
     <a class="home" href="index.html">← 홈페이지</a>
+    <button type="button" class="report" data-report>오류 신고</button>
   </div></div>
   <nav class="rail" aria-label="장 고르기"><div class="wrap" id="rail">
     <button class="chip" data-go="a1" data-ch="install"><span class="n">1</span>설치하기 <small>1분</small></button>
@@ -954,16 +960,16 @@
 
 <section class="step" id="e2" data-ch="add">
   <div class="txt">
-    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">[+ 계정 추가] 누르기</h2></div>
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">[계정 추가] 누르기</h2></div>
     <ol class="do">
-      <li><span>드라이브 지킴이 왼쪽 목록 맨 아래 <span class="k">+ 계정 추가</span>를 눌러요.</span></li>
+      <li><span>드라이브 지킴이 왼쪽 맨 아래 <span class="k">계정 추가</span>를 눌러요.</span></li>
       <li><span>브라우저가 열리면 <span class="k">다른 계정 사용</span>을 눌러요.<small>목록에 학교 계정이 있으면 그걸 바로 눌러요.</small></span></li>
       <li><span>학교 계정 주소와 비밀번호로 로그인해요.</span></li>
     </ol>
   </div>
   <figure class="fig">
     <div class="stack">
-      <div class="shot" data-crop="0,6,52,46" data-spots="main_add|① + 계정 추가|r"><img src="assets/shots/main.png" alt="왼쪽 목록 맨 아래의 + 계정 추가"></div>
+      <div class="shot" data-crop="0,54,52,46" data-spots="main_add|① 계정 추가|r"><img src="assets/shots/main.png" alt="왼쪽 맨 아래의 계정 추가 단추"></div>
       <div class="then">브라우저에서</div>
       <div class="m browser">
         <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="addr"><b>accounts.google.com</b></span></div>
@@ -1020,7 +1026,7 @@
     <div class="head1"><div class="kicker"></div><span class="cheer">👥</span><h2 tabindex="-1">계정이 두 개가 됐어요!</h2></div>
     <ol class="do">
       <li><span>왼쪽 목록에서 계정을 골라 써요. 두 계정의 파일은 섞이지 않아요.</span></li>
-      <li><span>맨 위에 지금 보고 있는 계정이 보여요.</span></li>
+      <li><span>지금 쓰는 계정은 <b>파란 동그라미</b>로 보이고, 맨 아래 줄 오른쪽에도 나와요.</span></li>
     </ol>
     <div class="box tip"><b>💡 계정을 빼고 싶으면</b>왼쪽 계정 이름에서 <b>오른쪽 클릭</b> → <b>계정 제거</b>. 이 컴퓨터의 로그인 정보만 지워지고, 드라이브의 파일은 그대로예요.</div>
   </div>
@@ -1048,6 +1054,8 @@
       <details><summary>Google Drive 데스크톱도 깔려 있어요</summary><p>같이 켜 두면 G: 드라이브는 비밀번호 없이 열려요. 작업 표시줄의 구글 드라이브 아이콘 → 설정 → <b>종료</b>, 시작할 때 자동 실행도 꺼 주세요.</p></details>
     </div>
     <div class="box tip noprint" style="max-width:900px"><b>🤖 AI에게 물어보기</b>ChatGPT·Claude 같은 AI에게 <a href="manual/DriveKeeper-AI-Guide.md" download>AI용 설명서</a> 파일을 주고 물어보면, 이 프로그램에 맞게 차근차근 알려 줘요.</div>
+    <div class="box tip noprint" style="max-width:900px"><b>🐞 그래도 안 되면 알려 주세요</b>어느 단계에서 무엇이 안 되는지 적어 보내면 만든 사람이 보고 고쳐요. 프로그램에서는 맨 위 <span class="k">도움말</span> → <b>오류 신고 · 개선 의견 보내기</b>로도 보낼 수 있어요.<br><button type="button" class="help-report" data-report>오류 신고하기</button></div>
+    <div class="box print-only" style="max-width:900px"><b>🐞 그래도 안 되면</b>프로그램 맨 위 <span class="k">도움말</span> → <b>오류 신고 · 개선 의견 보내기</b>로 알려 주세요.</div>
   </div>
 </section>
 
@@ -1126,6 +1134,20 @@
   var printMode = /[?&]print\b/.test(location.search);
   function openAll() { document.querySelectorAll("details").forEach(function (d) { d.open = true; }); }
   if (printMode) { openAll(); return; }
+
+  // 오류 신고: [오류 신고] 단추로 열고, 지금 보는 단계 이름을 함께 남긴다 (개인정보는 넣지 않음)
+  var screenName = "따라 하기";
+  function tellReporter() { if (window.BugReporter) window.BugReporter.setContext({ screen: screenName }); }
+  window.addEventListener("load", function () {
+    tellReporter();
+    // 신고 위젯 1.0.0은 data-button="false"여도 떠 있는 단추가 보여서(.fab[hidden] 규칙 없음) 여기서 숨긴다
+    var host = document.querySelector("[data-bug-reporter]");
+    var fab = host && host.shadowRoot && host.shadowRoot.querySelector(".fab");
+    if (fab && fab.hidden) fab.style.display = "none";
+  });
+  document.querySelectorAll("[data-report]").forEach(function (b) {
+    b.addEventListener("click", function () { if (window.BugReporter) window.BugReporter.open(); });
+  });
   window.addEventListener("beforeprint", openAll);
 
   var rail = document.querySelectorAll(".chip"), bar = document.getElementById("barfill");
@@ -1149,6 +1171,8 @@
     prev.hidden = i === 0;
     next.hidden = false;
     next.textContent = s.key === "start" ? "처음부터 시작 →" : s.key === "c5" ? "써 보기 →" : s.key === "e4" ? "막혔을 때 보기 →" : s.key === "help" ? "처음 화면으로 ↺" : "다 했어요! 다음 →";
+    screenName = "따라 하기 · " + (CH[ch] ? CH[ch].name : "처음") + (s.key !== "start" && s.key !== "help" ? " (" + s.key + ")" : "");
+    tellReporter();
     var url = s.key === "start" ? location.pathname : "#" + s.key;
     if (push) history.pushState({ i: i }, "", url); else history.replaceState({ i: i }, "", url);
     if (s.key !== "start" && s.key !== "help") { saved.step = s.key; saved.done = done; store.set(saved); }

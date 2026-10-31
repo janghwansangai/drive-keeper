@@ -341,6 +341,13 @@ class TestHelpers(unittest.TestCase):
         for status, kind in cases.items():
             self.assertEqual(app_mod.track_kind(status), kind, status)
 
+    def test_bug_report_url(self):
+        url = app_mod.bug_report_url("메인 화면 · 내 드라이브")
+        self.assertTrue(url.startswith(config.BUG_REPORT_URL + "?app=drive-keeper&v="))
+        self.assertIn("v=" + config.VERSION, url)
+        self.assertIn("where=%EB%A9%94%EC%9D%B8%20", url)   # 한글·빈칸은 %로 바꿔 붙임
+        self.assertNotIn("where", app_mod.bug_report_url())
+
     def test_days_left_in_trash(self):
         now = app_mod._dt.datetime.now(app_mod._dt.timezone.utc)
 

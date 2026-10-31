@@ -11,6 +11,7 @@
 <meta name="theme-color" content="#13245E">
 <link rel="icon" href="assets/favicon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="https://script.google.com/macros/s/AKfycbxsRD7vRlEP9oKlvlDDPww8cYaDadTTIp1KrqYWSVU5qE5_gUh3bNUskBhHDlXH6FskvA/exec?asset=widget.js" data-app="drive-keeper" data-version="2.1.0" data-color="#2563EB" defer></script>
 <style>
   :root {
     --navy: #0F1E4F; --navy2: #13245E; --blue: #2563EB; --blue-d: #1D4ED8; --sky: #5B95FF; --soft: #DCE8FF;
@@ -171,7 +172,7 @@
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#"><img src="assets/logo.svg" alt="">드라이브 지킴이</a>
-    <nav class="links"><a href="#why">왜 필요할까요</a><a href="#features">기능</a><a href="start.html">따라 하기</a><a href="#manual">설명서</a><a href="#faq">자주 묻는 질문</a></nav>
+    <nav class="links"><a href="#why">왜 필요할까요</a><a href="#features">기능</a><a href="start.html">따라 하기</a><a href="#manual">설명서</a><a href="#faq">자주 묻는 질문</a><a href="#report" data-report>오류 신고</a></nav>
     <a class="btn btn-primary cta" href="https://github.com/janghwansangai/drive-keeper/releases/latest/download/DriveKeeper.zip">내려받기</a>
   </div>
 </header>
@@ -188,10 +189,10 @@
           무료로 내려받기</a>
         <a class="btn btn-ghost" href="start.html">그림 보며 따라 하기 →</a>
       </div>
-      <div class="meta"><span>최신 버전 <b id="ver">2.0.0</b></span><span id="vdate"></span><span>설치부터 연결까지 약 7분</span></div>
+      <div class="meta"><span>최신 버전 <b id="ver">2.1.0</b></span><span id="vdate"></span><span>설치부터 연결까지 약 7분</span><span>만든 사람 <b>다있쌤 로디</b></span></div>
     </div>
     <div class="shotframe">
-      <img class="main" src="assets/shots/main.png" alt="드라이브 지킴이 화면: 왼쪽에 계정 목록, 가운데에 드라이브 파일 목록, 아래에 편집 중인 파일">
+      <img class="main" src="assets/shots/main.png" alt="드라이브 지킴이 화면: 왼쪽에 계정 목록과 지키는 중 안내, 가운데에 드라이브 파일 목록, 아래에 편집 중인 파일과 저장 상태">
       <div class="float f1"><span class="ic">🔒</span><span>비밀번호 잠금<small>자리 비우면 저절로</small></span></div>
       <div class="float f2"><span class="ic">💾</span><span>저장하면 자동 업로드<small>Ctrl+S 한 번이면 끝</small></span></div>
       <div class="float f3"><span class="ic">⏪</span><span>타임머신<small>지운 파일 되살리기</small></span></div>
@@ -228,6 +229,9 @@
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></div><h3>타임머신</h3><p>실수로 지운 파일을 되살리고, 잘못 저장한 파일을 예전 내용으로 되돌려요.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/></svg></div><h3>여러 계정</h3><p>개인 계정과 학교·회사 계정을 함께 넣고 왼쪽 목록에서 골라 써요. 파일이 섞이지 않아요.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><h3>랜섬웨어·정전 대비</h3><p>파일이 이상하게 바뀌면 올리지 않고 원본을 지켜요. 정전이 나도 올리지 못한 변경을 기억해 뒀다가 다시 올려요.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></div><h3>저장 상태가 한눈에</h3><p>밝고 단순해진 화면에서 편집 중인 파일마다 색 동그라미로 저장됨·올리는 중·보류를 바로 알려 줘요.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5M12 8v5M9.5 10.5L12 13l2.5-2.5"/></svg></div><h3>누르면 끝나는 업데이트</h3><p>새 버전이 나오면 [지금 업데이트] 한 번으로 받아서 설치하고 다시 켜져요. 설정과 로그인은 그대로예요.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M12 7v4M12 14h.01"/></svg></div><h3>오류 신고 · 의견 보내기</h3><p>불편한 점이나 바라는 점을 프로그램의 [도움말]이나 이 홈페이지에서 바로 보내요. 적어 보낸 내용만 전해져요.</p></div>
     </div>
   </div>
 </section>
@@ -236,12 +240,15 @@
   <div class="wrap">
     <div class="center"><div class="eyebrow">둘러보기</div><h2 class="sec-title">이렇게 생겼어요</h2></div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" aria-selected="true" data-p="p1">시작 도우미</button>
+      <button class="tab" role="tab" aria-selected="true" data-p="p0">기본 화면</button>
+      <button class="tab" role="tab" aria-selected="false" data-p="p1">시작 도우미</button>
       <button class="tab" role="tab" aria-selected="false" data-p="p2">잠금 화면</button>
       <button class="tab" role="tab" aria-selected="false" data-p="p3">타임머신</button>
       <button class="tab" role="tab" aria-selected="false" data-p="p4">보안 설정</button>
     </div>
-    <div class="panel on" id="p1"><img src="assets/shots/setup_first.png" alt="시작 도우미 화면" loading="lazy">
+    <div class="panel on" id="p0"><img src="assets/shots/main.png" alt="드라이브 지킴이 기본 화면" loading="lazy">
+      <div><h3>윈도우 탐색기처럼 익숙하게</h3><p>처음 써도 헤매지 않게 밝고 단순하게 만들었어요.</p><ol><li>왼쪽: 계정과 내 드라이브·공유 문서함, 지금 지키고 있는 것</li><li>가운데: 드라이브 파일 목록 (두 번 누르면 열려요)</li><li>아래: 편집 중인 파일과 저장 상태 (초록 ✓면 드라이브에 저장됨)</li></ol></div></div>
+    <div class="panel" id="p1"><img src="assets/shots/setup_first.png" alt="시작 도우미 화면" loading="lazy">
       <div><h3>처음엔 시작 도우미가 안내해요</h3><p>세 단계만 따라 하면 돼요.</p><ol><li>내 구글 열쇠 만들기 ([그림으로 따라 하기]를 누르면 한 단계씩)</li><li>받은 열쇠 파일을 자동으로 찾아 넣기</li><li>내 구글 계정으로 로그인</li></ol></div></div>
     <div class="panel" id="p2"><img src="assets/shots/lock.png" alt="잠금 화면" loading="lazy">
       <div><h3>자리를 비우면 저절로 잠겨요</h3><p>비밀번호를 넣어야 다시 열려요. 잠겨 있는 동안에도 열어 둔 파일의 저장 내용은 계속 드라이브에 올라가요. 비밀번호를 잊으면 내 구글 계정으로 본인 확인을 하고 새로 정할 수 있어요.</p></div></div>
@@ -271,7 +278,7 @@
       <p class="sec-lead">안전을 맨 먼저 생각하고 만들었어요.</p></div>
     <div class="promises">
       <div class="prom"><div class="ic">🛡️</div><h3>지우는 요청은 막아요</h3><p>삭제·휴지통 이동·휴지통 비우기·공유 변경 요청은 통신 단계에서 차단돼요.</p></div>
-      <div class="prom"><div class="ic">🔑</div><h3>내 열쇠만 써요</h3><p>개발자 서버가 없어요. 파일은 내 PC와 내 구글 드라이브 사이에서만 오가요.</p></div>
+      <div class="prom"><div class="ic">🔑</div><h3>내 열쇠만 써요</h3><p>파일과 계정 정보는 만든 사람에게 가지 않아요. 파일은 내 PC와 내 구글 드라이브 사이에서만 오가요.</p></div>
       <div class="prom"><div class="ic">🔐</div><h3>암호화해서 보관</h3><p>로그인 정보는 이 PC의 내 Windows 계정으로만 풀리게 암호화해요.</p></div>
       <div class="prom"><div class="ic">🦠</div><h3>이상하면 멈춰요</h3><p>여러 파일이 한꺼번에 깨지면 랜섬웨어로 보고 모든 업로드를 멈춰요.</p></div>
     </div>
@@ -281,9 +288,9 @@
 <section id="manual">
   <div class="wrap">
     <div class="center"><div class="eyebrow">내려받기 · 설명서</div><h2 class="sec-title">언제나 최신 버전을 받아요</h2>
-      <p class="sec-lead">새 버전이 나오면 아래 단추는 저절로 최신 파일을 내려받아요. 프로그램도 새 버전이 나오면 알려 줘요.</p></div>
+      <p class="sec-lead">새 버전이 나오면 아래 단추는 저절로 최신 파일을 내려받아요. 프로그램도 새 버전을 알려 주고, 누르면 바로 업데이트해요.</p></div>
     <div class="docs-grid">
-      <div class="doc dl"><h3>💻 드라이브 지킴이 <span id="ver2">2.0.0</span></h3><p>Windows 10·11용 · 프로그램 + 설치 파일 + 설명서가 한 번에 들어 있어요.</p>
+      <div class="doc dl"><h3>💻 드라이브 지킴이 <span id="ver2">2.1.0</span></h3><p>Windows 10·11용 · 프로그램 + 설치 파일 + 설명서가 한 번에 들어 있어요.</p>
         <a class="btn btn-primary" href="https://github.com/janghwansangai/drive-keeper/releases/latest/download/DriveKeeper.zip">무료로 내려받기</a></div>
       <div class="doc"><h3>👆 따라 하기 안내</h3><p>초등학생도 따라 할 수 있게 한 화면에 한 단계씩 그림으로 보여 줘요. 인쇄용 PDF도 같은 내용이에요.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-primary" href="start.html">따라 하기</a><a class="btn btn-light" href="manual/DriveKeeper-Manual.pdf">PDF</a></div></div>
@@ -298,15 +305,16 @@
   <div class="wrap">
     <div class="center"><div class="eyebrow">자주 묻는 질문</div><h2 class="sec-title">궁금한 것들</h2></div>
     <div class="faq">
-      <details><summary>정말 무료인가요? 제 정보를 가져가지 않나요?</summary><p>네, 무료예요. 개발자에게 아무 정보도 가지 않아요. 서버가 없고, 파일은 내 컴퓨터와 내 구글 드라이브 사이에서만 오가요. 업데이트 확인 때 최신 버전 번호만 GitHub에서 읽어요.</p></details>
+      <details><summary>정말 무료인가요? 제 정보를 가져가지 않나요?</summary><p>네, 무료예요. 프로그램이 저절로 보내는 정보는 없고, 파일은 내 컴퓨터와 내 구글 드라이브 사이에서만 오가요. 업데이트 확인 때 최신 버전 번호만 GitHub에서 읽어요. 내가 직접 <b>오류 신고</b>를 보낼 때만 적은 내용이 만든 사람에게 가요. 자세한 건 <a href="privacy.html">개인정보처리방침</a>에 있어요.</p></details>
       <details><summary>‘구글 열쇠’는 왜 직접 만들어야 하나요?</summary><p>다른 사람의 열쇠를 함께 나눠 쓰지 않고, 내 드라이브는 오직 내 열쇠로만 열리게 하려고요. 구글 클라우드에서 무료로 5분이면 만들 수 있어요. <a href="start.html#key">그림으로 따라 하기</a>를 보며 단추만 차례로 누르면 돼요.</p></details>
       <details><summary>로그인할 때 ‘확인하지 않은 앱’이라고 나와요.</summary><p>내가 만든 열쇠라서 나오는 안내예요. 파란 단추 말고 <b>왼쪽 글자 [계속]</b>을 누르면 돼요([계속]이 없으면 [고급] → [...(으)로 이동]). 같은 이유로 구글 규칙상 7일에 한 번 다시 로그인해요(브라우저가 저절로 열려요).</p></details>
       <details><summary>‘Windows의 PC 보호’ 파란 창이 떠요.</summary><p>개인이 만든 프로그램이라 전자 서명이 없어서 나오는 안내예요. [추가 정보] → [실행]을 누르면 돼요. 이 홈페이지에서 받은 파일인지 꼭 확인하세요.</p></details>
       <details><summary>Google 드라이브 데스크톱과 함께 써도 되나요?</summary><p>같이 켜 두면 G: 드라이브가 여전히 비밀번호 없이 열려요. 잠금 효과를 보려면 Google 드라이브 데스크톱은 종료하고 자동 실행을 꺼 주세요.</p></details>
       <details><summary>한글(HWP) 파일도 되나요?</summary><p>네. 한글·Word·Excel·PowerPoint 등 컴퓨터에 깔린 프로그램으로 열고, 저장하면 드라이브에 올라가요. Google 문서·시트는 오피스 파일 복사본으로 열리고, 원본은 브라우저에서 고쳐요.</p></details>
       <details><summary>여러 컴퓨터에서 같은 파일을 고치면요?</summary><p>다른 곳에서 바뀐 원본을 덮어쓰지 않고, 내 변경은 ‘(충돌 사본 날짜 시간)’이라는 새 파일로 올려요. 아무것도 잃어버리지 않아요.</p></details>
-      <details><summary>구글 계정을 하나 더 넣을 수 있나요?</summary><p>네. 열쇠를 만든 구글 화면의 ‘테스트 사용자’에 그 계정 주소를 넣고, 프로그램 왼쪽 맨 아래 [+ 계정 추가]를 누르면 돼요. <a href="start.html#add">학교 계정을 추가하는 예시</a>를 그림으로 볼 수 있어요.</p></details>
-      <details><summary>새 버전은 어떻게 받나요?</summary><p>새 버전이 나오면 프로그램 오른쪽 아래에 [새 버전 받기]가 생겨요. 받은 파일로 ‘설치하기’를 다시 하면 되고, 로그인과 기록은 그대로 남아요.</p></details>
+      <details><summary>구글 계정을 하나 더 넣을 수 있나요?</summary><p>네. 열쇠를 만든 구글 화면의 ‘테스트 사용자’에 그 계정 주소를 넣고, 프로그램 왼쪽 맨 아래 [계정 추가]를 누르면 돼요. <a href="start.html#add">학교 계정을 추가하는 예시</a>를 그림으로 볼 수 있어요.</p></details>
+      <details><summary>새 버전은 어떻게 받나요?</summary><p>새 버전이 나오면 프로그램 오른쪽 아래에 [새 버전 … 업데이트]가 생겨요. 누르고 [지금 업데이트]를 누르면 받아서 설치한 뒤 다시 켜져요(2.1.0부터). 이 홈페이지에서 새로 받아 ‘설치하기’를 다시 해도 돼요. 어느 쪽이든 로그인과 기록은 그대로 남아요.</p></details>
+      <details><summary>오류를 찾았거나 바라는 점이 있어요.</summary><p>프로그램 맨 위 [도움말] → [오류 신고 · 개선 의견 보내기]를 누르거나, 이 홈페이지 오른쪽 아래 <a href="#report" data-report>오류 신고</a> 단추를 눌러 주세요. 어떤 화면에서 무엇을 했을 때 생겼는지 적어 주면 빨리 고칠 수 있어요.</p></details>
     </div>
   </div>
 </section>
@@ -314,8 +322,9 @@
 <footer>
   <div class="wrap">
     <div><a class="brand" href="#" style="font-size:17px"><img src="assets/logo.svg" alt="" style="width:26px;height:26px">드라이브 지킴이</a>
+      <div class="note">만든 사람: 다있쌤 로디</div>
       <div class="note">Google Drive는 Google LLC의 상표입니다. 드라이브 지킴이는 Google과 관련이 없는 개인 프로젝트입니다.</div></div>
-    <div class="links"><a href="privacy.html">개인정보처리방침</a><a href="start.html">따라 하기</a><a href="manual/DriveKeeper-Manual.pdf">설명서 PDF</a><a href="https://github.com/janghwansangai/drive-keeper">GitHub</a><a href="https://github.com/janghwansangai/drive-keeper/releases">버전 기록</a></div>
+    <div class="links"><a href="privacy.html">개인정보처리방침</a><a href="start.html">따라 하기</a><a href="manual/DriveKeeper-Manual.pdf">설명서 PDF</a><a href="#report" data-report>오류 신고</a><a href="https://github.com/janghwansangai/drive-keeper">GitHub</a><a href="https://github.com/janghwansangai/drive-keeper/releases">버전 기록</a></div>
   </div>
 </footer>
 
@@ -328,6 +337,7 @@
       const v = d.tag_name.replace(/^v/i, "");
       document.getElementById("ver").textContent = v;
       document.getElementById("ver2").textContent = v;
+      if (window.BugReporter) window.BugReporter.setVersion(v);
       if (d.published_at) {
         const t = new Date(d.published_at);
         document.getElementById("vdate").textContent = `${t.getFullYear()}.${t.getMonth() + 1}.${t.getDate()} 업데이트`;
@@ -337,6 +347,13 @@
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t === tab ? "true" : "false"));
     document.querySelectorAll(".panel").forEach(p => p.classList.toggle("on", p.id === tab.dataset.p));
   }));
+  // 오류 신고: 메뉴·글 속 [오류 신고]를 누르면 신고 창을 연다 (오른쪽 아래 단추와 같음)
+  document.querySelectorAll("[data-report]").forEach(a => a.addEventListener("click", e => {
+    if (!window.BugReporter) return;   // 신고 스크립트를 못 불러왔으면 그냥 둔다
+    e.preventDefault();
+    window.BugReporter.open();
+  }));
+  window.addEventListener("load", () => { if (window.BugReporter) window.BugReporter.setContext({ screen: "홈페이지" }); });
 </script>
 </body>
 </html>

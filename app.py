@@ -30,6 +30,7 @@ import threading
 import time
 import tkinter as tk
 import tkinter.font as tkfont
+import urllib.parse
 import webbrowser
 from pathlib import Path
 from tkinter import messagebox, ttk
@@ -40,6 +41,7 @@ import gtypes
 import protect
 import security
 import sync
+import updater
 from errors import (FileLockedError, friendly_error, http_reason, http_status, is_auth_error,
                     is_network_error)
 
@@ -891,6 +893,19 @@ def open_guide(part: str = "") -> None:
     webbrowser.open(config.GUIDE_URL + (f"#{part}" if part else ""))
 
 
+def bug_report_url(where: str = "") -> str:
+    """오류 신고 창 주소. 프로그램 이름·버전·화면 이름만 붙인다 (파일·폴더·계정 이름은 넣지 않음)."""
+    query = {"app": config.BUG_REPORT_APP, "v": config.VERSION}
+    if where:
+        query["where"] = where
+    return config.BUG_REPORT_URL + "?" + urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
+
+
+def open_bug_report(where: str = "") -> None:
+    """오류·개선 신고 창을 기본 브라우저로 연다. 사용자가 그 창에서 직접 적어 보낸 내용만 전달된다."""
+    webbrowser.open(bug_report_url(where))
+
+
 CONSOLE = {
     "project": "https://console.cloud.google.com/projectcreate",
     "api": "https://console.cloud.google.com/apis/library/drive.googleapis.com",
@@ -942,7 +957,7 @@ HELP_TOPICS: dict[str, tuple[str, list[tuple[str, str]]]] = {
         ("step", "• 열쇠를 만든 내 계정으로 로그인되어 있는지 확인합니다.\n"
                  "• '테스트 사용자'의 [+ Add users] → 추가할 Gmail 주소 → [저장]"),
         ("h2", "2단계. 프로그램에서 계정 추가하기"),
-        ("step", "• 아래 [계정 추가 시작] (왼쪽 목록 맨 아래 '+ 계정 추가'와 같아요)\n"
+        ("step", "• 아래 [계정 추가 시작] (왼쪽 아래 [계정 추가] 단추와 같아요)\n"
                  "• 브라우저에서 추가할 계정을 고릅니다. 없으면 '다른 계정 사용'\n"
                  "• 'Google에서 확인하지 않은 앱'이 나오면 파란 단추 말고 왼쪽 글자 [계속]을 누릅니다.\n"
                  "  ([계속]이 없으면 [고급] → '...(으)로 이동'. 내가 만든 앱이라 나오는 안내예요)\n"
@@ -1087,6 +1102,7 @@ class SetupWizard(tk.Toplevel):
         foot = tk.Frame(self, bg=T.BG, padx=int(24 * s), pady=int(0 * s))
         foot.pack(fill="x", pady=(0, int(16 * s)))
         ttk.Button(foot, text="나중에 하기", command=self.destroy).pack(side="right")
+        ttk.Button(foot, text="막히면 오류 신고", command=lambda: open_bug_report("시작 도우미")).pack(side="left")
         self.refresh()
         self.bind("<Escape>", lambda e: self.destroy())
 
@@ -1184,6 +1200,8 @@ class AboutDialog(tk.Toplevel):
         self._font = big
         tk.Label(box, text="드라이브 지킴이", font=big, bg=T.SURFACE, fg=T.TEXT).pack(pady=(int(8 * s), 0))
         tk.Label(box, text=f"버전 {config.VERSION}", bg=T.SURFACE, fg=T.MUTED).pack()
+        tk.Label(box, text=f"만든 사람: {config.AUTHOR}", bg=T.SURFACE, fg=T.TEXT, font=app.f_bold).pack(
+            pady=(int(4 * s), 0))
         tk.Label(box, text="구글 드라이브를 비밀번호로 지키며 필요한 파일만 꺼내 쓰는 프로그램",
                  bg=T.SURFACE, fg=T.TEXT).pack(pady=(int(10 * s), int(4 * s)))
         tk.Label(box, text=f"데이터 폴더: {config.BASE_DIR}", bg=T.SURFACE, fg=T.MUTED).pack()
@@ -1191,8 +1209,109 @@ class AboutDialog(tk.Toplevel):
         row.pack(pady=(int(14 * s), 0))
         ttk.Button(row, text="홈페이지", command=lambda: webbrowser.open(config.SITE_URL)).pack(side="left", padx=3)
         ttk.Button(row, text="업데이트 확인", command=lambda: app.check_update(manual=True)).pack(side="left", padx=3)
+        ttk.Button(row, text="오류 신고", command=lambda: open_bug_report("정보 창")).pack(side="left", padx=3)
         ttk.Button(row, text="닫기", command=self.destroy).pack(side="left", padx=3)
         self.bind("<Escape>", lambda e: self.destroy())
+
+
+# ---------- 새 버전 업데이트 ----------
+class UpdateDialog(tk.Toplevel):
+    """새 버전 안내. [지금 업데이트] → 받기·검사 → 프로그램을 닫고 설치한 뒤 다시 켠다 (updater.py)."""
+
+    def __init__(self, app: "App", info: dict) -> None:
+        super().__init__(app)
+        self.app = app
+        self.info = info
+        self.installer: Path | None = None
+        self.title("새 버전 업데이트")
+        self.transient(app)
+        self.configure(bg=T.SURFACE)
+        self.resizable(False, False)
+        s = app.scale
+        box = tk.Frame(self, bg=T.SURFACE, padx=int(26 * s), pady=int(22 * s))
+        box.pack(fill="both", expand=True)
+        tk.Label(box, text=f"새 버전 {info['version']}이 나왔어요", font=app.f_title, bg=T.SURFACE, fg=T.TEXT,
+                 anchor="w").pack(fill="x")
+        tk.Label(box, text=f"지금 쓰는 버전: {config.VERSION}", bg=T.SURFACE, fg=T.MUTED, anchor="w").pack(fill="x")
+        notes = (info.get("notes") or "").strip()
+        if notes:
+            tk.Label(box, text="바뀐 점", font=app.f_bold, bg=T.SURFACE, fg=T.TEXT, anchor="w").pack(
+                fill="x", pady=(int(14 * s), int(4 * s)))
+            txt = tk.Text(box, height=8, width=62, wrap="word", relief="flat", bg=T.SIDEBAR, fg=T.TEXT,
+                          highlightthickness=1, highlightbackground=T.BORDER, padx=int(10 * s), pady=int(8 * s),
+                          font=tkfont.nametofont("TkDefaultFont"))
+            txt.insert("1.0", notes)
+            txt.configure(state="disabled")
+            txt.pack(fill="x")
+        self.auto = updater.can_self_update(info)
+        hint = ("[지금 업데이트]를 누르면 새 버전을 받아 확인한 뒤, 프로그램을 잠깐 닫고 설치해서 다시 켜요. "
+                "로그인·설정·기록은 그대로예요." if self.auto else
+                "다운로드 페이지에서 DriveKeeper.zip을 받아 압축을 풀고 [설치하기]를 다시 누르면 돼요. "
+                "로그인·설정·기록은 그대로예요.")
+        tk.Label(box, text=hint, wraplength=int(460 * s), justify="left", bg=T.SURFACE, fg=T.MUTED,
+                 anchor="w").pack(fill="x", pady=(int(12 * s), 0))
+        self.bar = ttk.Progressbar(box, mode="determinate", maximum=100)
+        self.status = tk.StringVar(value="")
+        self.status_label = tk.Label(box, textvariable=self.status, wraplength=int(460 * s), justify="left",
+                                     bg=T.SURFACE, fg=T.TEXT, anchor="w")
+        self.status_label.pack(fill="x", pady=(int(6 * s), 0))
+        row = tk.Frame(box, bg=T.SURFACE)
+        row.pack(fill="x", pady=(int(14 * s), 0))
+        ttk.Button(row, text="나중에", command=self.destroy).pack(side="right")
+        ttk.Button(row, text="다운로드 페이지", style="TButton" if self.auto else "Accent.TButton",
+                   command=lambda: webbrowser.open(info.get("url") or config.RELEASES_URL)).pack(side="right", padx=4)
+        self.btn_go = ttk.Button(row, text="지금 업데이트", style="Accent.TButton", command=self.start)
+        if self.auto:
+            self.btn_go.pack(side="right")
+        self.bind("<Escape>", lambda e: self.destroy())
+
+    def _alive(self) -> bool:
+        try:
+            return bool(self.winfo_exists())
+        except tk.TclError:
+            return False
+
+    def start(self) -> None:
+        if self.installer is not None:     # 받아 두었는데 설치를 미뤘던 경우
+            self._on_ready(self.installer)
+            return
+        self.btn_go.state(["disabled"])
+        self.bar.pack(fill="x", pady=(int(10 * self.app.scale), 0), before=self.status_label)
+        self.bar["value"] = 0
+        self.status.set("새 버전을 받는 중...")
+        info = dict(self.info)
+        self.app.io.submit(lambda: updater.download(info, lambda got, total: self.app.post(self._on_progress,
+                                                                                          (got, total))),
+                           self._on_ready, self._on_fail)
+
+    def _on_progress(self, arg) -> None:
+        got, total = arg
+        if not self._alive():
+            return
+        if total:
+            self.bar["value"] = got * 100 / total
+        self.status.set(f"새 버전을 받는 중... {human_size(got)}" + (f" / {human_size(total)}" if total else ""))
+
+    def _on_ready(self, installer: Path) -> None:
+        if not self._alive():
+            shutil.rmtree(updater.work_dir(), ignore_errors=True)   # 창을 닫았으면 받은 파일은 치운다
+            return
+        self.installer = installer
+        self.bar["value"] = 100
+        self.status.set("새 버전을 받아 확인했어요.")
+        if not self.app.install_update(installer) and self._alive():
+            self.btn_go.state(["!disabled"])
+            self.btn_go.configure(text="지금 설치")
+            self.status.set("설치를 미뤘어요. 준비되면 [지금 설치]를 눌러 주세요.")
+
+    def _on_fail(self, e: BaseException) -> None:
+        log.warning("업데이트 받기 실패: %r", e)
+        if not self._alive():
+            return
+        self.bar.pack_forget()
+        self.btn_go.state(["!disabled"])
+        msg = str(e) if isinstance(e, updater.UpdateError) else friendly_error(e).splitlines()[0]
+        self.status.set(f"업데이트하지 못했어요: {msg}")
 
 
 # ---------- 타임머신 ----------
@@ -1683,6 +1802,7 @@ class App(tk.Tk):
             self._show_placeholder("Google 로그인 확인 중...")
         self._refresh_track_view()
         self._update_lock_button()
+        self.after(800, self._show_update_result)
 
         if self.security.reset_required:
             self.lock_now("reset")
@@ -1847,6 +1967,8 @@ class App(tk.Tk):
         style.configure("TScrollbar", background=T.BORDER, troughcolor=T.SURFACE, bordercolor=T.SURFACE,
                         lightcolor=T.BORDER, darkcolor=T.BORDER, arrowcolor=T.MUTED, gripcount=0)
         style.map("TScrollbar", background=[("active", T.BORDER_STRONG)])
+        style.configure("Horizontal.TProgressbar", background=T.PRIMARY, troughcolor=T.BG, bordercolor=T.BG,
+                        lightcolor=T.PRIMARY, darkcolor=T.PRIMARY)
         style.configure("TMenubutton", background=T.SURFACE)
         self.option_add("*Menu.background", T.SURFACE)
         self.option_add("*Menu.activeBackground", T.PRIMARY_SOFT)
@@ -1892,6 +2014,8 @@ class App(tk.Tk):
         self.help_menu.add_command(label="작업 폴더 열기", command=self.reveal_selected_track)
         self.help_menu.add_command(label="기록 파일(app.log) 위치 열기", command=lambda: self._reveal(config.LOG_PATH))
         self.help_menu.add_separator()
+        self.help_menu.add_command(label="오류 신고 · 개선 의견 보내기",
+                                   command=lambda: open_bug_report(self._screen_name()))
         self.help_menu.add_command(label="업데이트 확인", command=lambda: self.check_update(manual=True))
         self.help_menu.add_command(label="홈페이지 열기", command=lambda: webbrowser.open(config.SITE_URL))
         self.help_menu.add_command(label="드라이브 지킴이 정보", command=lambda: AboutDialog(self))
@@ -1904,7 +2028,8 @@ class App(tk.Tk):
             side="right", padx=(int(12 * s), int(14 * s)))
         tk.Label(bar, textvariable=self.account_var, bg=T.SURFACE, fg=T.MUTED).pack(side="right")
         self.login_btn = ttk.Button(bar, text="다시 로그인", style="Accent.TButton", command=self.on_login_button)
-        self.update_btn = ttk.Button(bar, text="새 버전 받기", style="Accent.TButton", command=self._open_update)
+        self.update_btn = ttk.Button(bar, text="새 버전 업데이트", style="Accent.TButton", command=self._open_update)
+        self._update_dialog: UpdateDialog | None = None
         self.status_var = tk.StringVar(value="")
         ttk.Label(bar, textvariable=self.status_var, anchor="w", style="Status.TLabel").pack(
             side="left", fill="x", expand=True)
@@ -2107,6 +2232,12 @@ class App(tk.Tk):
             self.search_var.set("")
             self.search.configure(fg=T.TEXT)
 
+    def _screen_name(self) -> str:
+        """오류 신고에 붙일 지금 화면 이름. 폴더·파일·계정 이름 같은 개인정보는 넣지 않는다."""
+        root = {"folder": "내 드라이브", "shared": "공유 문서함", "drives": "공유 드라이브",
+                "search": "검색 결과", "none": "계정 없음"}.get(self.stack[0].kind, "")
+        return "메인 화면" + (f" · {root}" if root else "")
+
     def _popup_help(self) -> None:
         b = self.help_btn
         try:
@@ -2134,17 +2265,14 @@ class App(tk.Tk):
             if time.time() - last < 20 * 3600:
                 return
         self.ui_settings["last_update_check"] = time.time()
-        import updater
 
         def done(info):
             if info and updater.is_newer(info["version"]):
                 self._update_info = info
-                self.update_btn.configure(text=f"새 버전 {info['version']} 받기")
+                self.update_btn.configure(text=f"새 버전 {info['version']} 업데이트")
                 self.update_btn.pack(side="right", padx=4, pady=2)
-                self.set_status(f"새 버전 {info['version']}이 나왔어요. 오른쪽 아래 단추로 받을 수 있어요.")
-                if manual and messagebox.askyesno(
-                        "새 버전", f"새 버전 {info['version']}이 있어요. (지금 {config.VERSION})\n\n다운로드 페이지를 열까요?",
-                        parent=self):
+                self.set_status(f"새 버전 {info['version']}이 나왔어요. 오른쪽 아래 [업데이트]를 누르면 바로 바꿔요.")
+                if manual:
                     self._open_update()
             elif manual:
                 messagebox.showinfo("업데이트 확인", f"지금 최신 버전({config.VERSION})을 쓰고 있어요.", parent=self)
@@ -2156,8 +2284,41 @@ class App(tk.Tk):
         self.io.submit(updater.check_latest, done, fail)
 
     def _open_update(self) -> None:
-        info = self._update_info or {}
-        webbrowser.open(info.get("url") or config.RELEASES_URL)
+        if self.lock is not None:
+            return
+        if not self._update_info:
+            webbrowser.open(config.RELEASES_URL)
+            return
+        w = self._update_dialog
+        try:
+            if w is not None and w.winfo_exists():
+                w.lift()
+                return
+        except tk.TclError:
+            pass
+        self._update_dialog = UpdateDialog(self, self._update_info)
+
+    def install_update(self, installer: Path) -> bool:
+        """받아 둔 새 버전 설치: 닫아도 되는지 묻고 → 설치 도우미를 띄우고 → 프로그램을 닫는다."""
+        if self.lock is not None or self._closing:
+            return False
+        if not self._ok_to_close("업데이트하려면 프로그램을 잠깐 닫아요. 설치가 끝나면 저절로 다시 켜져요.\n\n"
+                                 "지금 설치할까요?", always_ask=True, title="새 버전 설치"):
+            return False
+        try:
+            updater.launch_installer(installer)
+        except Exception as e:
+            self._dialog("error", "새 버전 설치", f"설치 프로그램을 시작하지 못했어요.\n\n{friendly_error(e)}")
+            return False
+        log.info("업데이트: 설치 도우미를 띄우고 종료")
+        self.shutdown()
+        return True
+
+    def _show_update_result(self) -> None:
+        msg = updater.finished_message()
+        if msg:
+            log.info("업데이트 결과: %s", msg)
+            self._dialog("info" if msg.startswith("새 버전") else "warning", "업데이트", msg)
 
     def _when_unlocked(self, fn) -> None:
         if self.lock is None:
@@ -2248,7 +2409,7 @@ class App(tk.Tk):
             else:
                 self._dialog("info", "잠금", "잠금이 꺼져 있습니다. '보안 설정'에서 '잠금 사용'을 켜 주세요.")
             return
-        for dlg in (self._sec_dialog, self._tm_dialog):   # 파일 이름이 보이는 창은 닫는다
+        for dlg in (self._sec_dialog, self._tm_dialog, self._update_dialog):   # 잠금 화면 위에 남는 창은 닫는다
             if dlg is not None:
                 try:
                     dlg.destroy()
@@ -2256,6 +2417,7 @@ class App(tk.Tk):
                     pass
         self._sec_dialog = None
         self._tm_dialog = None
+        self._update_dialog = None
         try:
             self.menu.unpost()
             self.nav_menu.unpost()
@@ -2562,7 +2724,7 @@ class App(tk.Tk):
         msg = friendly_error(e)
         self.set_status("계정을 추가하지 못했습니다: " + msg.splitlines()[0])
         if not self.store.accounts:
-            self._show_placeholder("로그인하지 못했습니다. 왼쪽의 '+ 계정 추가'를 눌러 다시 시도하세요.")
+            self._show_placeholder("로그인하지 못했습니다. 왼쪽 아래 [계정 추가]를 눌러 다시 시도하세요.")
         if isinstance(e, Exception) and not is_network_error(e):
             if "테스트 사용자" in msg and self.lock is None:
                 if messagebox.askyesno("계정 추가 실패", msg + "\n\n단계별 안내를 볼까요?", parent=self):
@@ -3501,27 +3663,30 @@ class App(tk.Tk):
         except Exception:
             log.exception("화면 설정 저장 실패")
 
+    def _ok_to_close(self, question: str = "종료할까요?", always_ask: bool = False, title: str = "종료 확인") -> bool:
+        """닫아도 되는지: 올라가지 않은 변경이나 열려 있는 파일이 있으면 알려 주고 묻는다."""
+        unsynced = [n for sm in self.syncs.values() for n in sm.unsynced_names()]
+        if unsynced:
+            return messagebox.askyesno(
+                title,
+                "아직 드라이브에 올라가지 않은 변경이 있습니다:\n\n" + short_list(unsynced) +
+                "\n\n지금 닫아도 변경 내용은 작업 폴더에 보관되고,\n"
+                "다음에 프로그램을 켜면 자동으로 업로드됩니다.\n\n" + question,
+                icon="warning", parent=self)
+        in_use = [n for sm in self.syncs.values() for n in sm.in_use_names()]
+        if in_use:
+            return messagebox.askyesno(
+                title,
+                "Word·Excel·한글에서 아직 열려 있는 파일이 있습니다:\n\n" + short_list(in_use) +
+                "\n\n프로그램을 닫은 뒤에 저장한 내용은\n다음에 프로그램을 켤 때 업로드됩니다.\n\n" + question,
+                parent=self)
+        return messagebox.askyesno(title, question, parent=self) if always_ask else True
+
     def on_close(self) -> None:
         if self._closing:
             return
-        unsynced = [n for sm in self.syncs.values() for n in sm.unsynced_names()]
-        if unsynced:
-            if not messagebox.askyesno(
-                    "종료 확인",
-                    "아직 드라이브에 올라가지 않은 변경이 있습니다:\n\n" + short_list(unsynced) +
-                    "\n\n지금 닫아도 변경 내용은 작업 폴더에 보관되고,\n"
-                    "다음에 프로그램을 켜면 자동으로 업로드됩니다.\n\n종료할까요?",
-                    icon="warning", parent=self):
-                return
-        else:
-            in_use = [n for sm in self.syncs.values() for n in sm.in_use_names()]
-            if in_use and not messagebox.askyesno(
-                    "종료 확인",
-                    "Word·Excel·한글에서 아직 열려 있는 파일이 있습니다:\n\n" + short_list(in_use) +
-                    "\n\n프로그램을 닫은 뒤에 저장한 내용은\n다음에 프로그램을 켤 때 업로드됩니다.\n\n종료할까요?",
-                    parent=self):
-                return
-        self.shutdown()
+        if self._ok_to_close():
+            self.shutdown()
 
     def _on_session_end(self) -> None:
         """Windows를 끄거나 로그오프할 때: 묻지 않고 기록을 저장한 뒤 닫는다."""
