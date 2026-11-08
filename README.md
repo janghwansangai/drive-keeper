@@ -6,6 +6,7 @@
   <a href="https://janghwansangai.github.io/drive-keeper/"><b>홈페이지</b></a> ·
   <a href="https://github.com/janghwansangai/drive-keeper/releases/latest/download/DriveKeeper.zip"><b>내려받기</b></a> ·
   <a href="https://janghwansangai.github.io/drive-keeper/start.html"><b>따라 하기</b></a> ·
+  <a href="https://youtu.be/6z5kCET6WTE"><b>소개·설치 영상</b></a> ·
   <a href="docs/manual/DriveKeeper-Manual.pdf">사용설명서(PDF)</a> ·
   <a href="docs/manual/DriveKeeper-AI-Guide.md">AI용 설명서(MD)</a>
 </p>
