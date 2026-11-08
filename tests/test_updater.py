@@ -98,8 +98,13 @@ class UpdaterTest(unittest.TestCase):
                       dict(GOOD, **{"../evil.txt": b"x"})):                      # 폴더 밖으로 쓰기
             self.served = make_zip(names)
             with self.assertRaises(updater.UpdateError):
-                updater.download({"zip_url": ZIP_URL})
+                updater.download({"zip_url": ZIP_URL, "sha256": hashlib.sha256(self.served).hexdigest()})
         self.assertFalse((self.tmp / "evil.txt").exists())
+
+    def test_download_refuses_without_digest(self):
+        self.served = make_zip(GOOD)
+        with self.assertRaises(updater.UpdateError):
+            updater.download({"zip_url": ZIP_URL})
 
     def test_download_refuses_url_outside_this_repo(self):
         with self.assertRaises(updater.UpdateError):

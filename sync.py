@@ -54,7 +54,7 @@ STATUS_READONLY = "보기 전용 (드라이브에 반영 안 됨)"
 STATUS_HELD = "업로드 보류: 파일이 손상됐거나 암호화된 것 같습니다 (드라이브 원본 보호)"
 
 SIDECAR = ".gde-meta.json"      # 작업 폴더마다 남기는 기록 사본 (정전·기록 손상 대비)
-EMPTY_MD5 = hashlib.md5(b"").hexdigest()
+EMPTY_MD5 = hashlib.md5(b"", usedforsecurity=False).hexdigest()
 ZIP_TEST_LIMIT = 64 * 1024 * 1024
 _OLE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
@@ -163,6 +163,11 @@ def safe_filename(name: str, max_len: int = 150) -> str:
     name = name.rstrip(". ")
     if not name:
         name = "이름 없음"
+    low = name.lower()
+    if low == SIDECAR:                      # 드라이브 파일이 프로그램의 기록 사본 자리를 차지하지 못하게
+        name = "_" + name
+    elif low.endswith((PART_SUFFIX, DEL_SUFFIX)):   # 임시 파일로 오해해 저장을 놓치지 않게
+        name += "_"
     stem, dot, ext = name.rpartition(".")
     if not dot or not stem or len(ext) > 12 or " " in ext:
         stem, ext = name, ""
@@ -178,7 +183,7 @@ def safe_filename(name: str, max_len: int = 150) -> str:
 
 def short_dir_name(file_id: str) -> str:
     # 파일마다 하위 폴더를 따로 둬서 이름이 같아도 섞이지 않게 한다 (경로를 짧게 유지)
-    return hashlib.sha1(file_id.encode("utf-8")).hexdigest()[:10]
+    return hashlib.sha1(file_id.encode("utf-8"), usedforsecurity=False).hexdigest()[:10]
 
 
 if os.name == "nt":
@@ -274,7 +279,7 @@ def title_mentions(titles: list[str], filename: str) -> bool:
 
 
 def file_md5(path) -> str | None:
-    h = hashlib.md5()
+    h = hashlib.md5(usedforsecurity=False)
     try:
         with open_shared_read(path) as f:
             for chunk in iter(lambda: f.read(1 << 20), b""):
@@ -463,8 +468,9 @@ class SyncManager:
                 try:
                     data = json.loads(side.read_text(encoding="utf-8"))
                     for item in data.get("files", []):
-                        path = side.parent / str(item.get("file") or "")
-                        if item.get("file") and path.is_file() and norm(path) not in self._recs:
+                        name = str(item.get("file") or "")
+                        path = side.parent / name
+                        if name and name == os.path.basename(name) and name != ".." and path.is_file()                                 and norm(path) not in self._recs:
                             self._restore(item, path)
                             restored += 1
                 except Exception as e:
@@ -811,7 +817,7 @@ class SyncManager:
         before = _stat_sig(path)
         if before is None:
             raise FileNotFoundError(path)
-        h = hashlib.md5()
+        h = hashlib.md5(usedforsecurity=False)
         if before[1] <= self.memory_limit:
             with open_shared_read(path) as f:
                 data = f.read()

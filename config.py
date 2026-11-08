@@ -11,7 +11,7 @@ from pathlib import Path
 
 APP_NAME = "DriveKeeper"          # 데이터 폴더·exe 이름
 APP_TITLE = "드라이브 지킴이"       # 창 제목 (중복 실행 확인에도 씀)
-VERSION = "2.1.0"
+VERSION = "2.1.1"
 AUTHOR = "다있쌤 로디"               # 만든 사람 (정보 창·홈페이지·Windows [앱] 목록의 게시자)
 GITHUB_REPO = "janghwansangai/drive-keeper"
 SITE_URL = "https://janghwansangai.github.io/drive-keeper/"
@@ -255,3 +255,24 @@ def atomic_write_text(path: Path, text: str) -> None:
         except OSError:
             pass
         raise
+
+
+# ---------- 처음 실행할 때 한 번 보여 주는 면책 안내 ----------
+DISCLAIMER_VERSION = 1   # 안내 내용을 크게 바꿔 다시 동의받아야 할 때만 올린다
+
+
+def _disclaimer_path() -> Path:
+    return BASE_DIR / "disclaimer.json"
+
+
+def disclaimer_accepted() -> bool:
+    try:
+        return json.loads(_disclaimer_path().read_text(encoding="utf-8")).get("version") == DISCLAIMER_VERSION
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def accept_disclaimer() -> None:
+    BASE_DIR.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(_disclaimer_path(), json.dumps({
+        "version": DISCLAIMER_VERSION, "accepted_at": time.strftime("%Y-%m-%d %H:%M:%S"), "app_version": VERSION}))

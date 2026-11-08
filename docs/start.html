@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://janghwansangai.github.io/drive-keeper/assets/logo-256.png">
 <meta name="theme-color" content="#0F1E4F">
 <link rel="icon" href="assets/favicon.png">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" integrity="sha384-ei/b2Mz3F5J8nqTvpKS89CkzDCuD7Cc+/F+OsaPUKItzHgLNKnGq3rjtYq/B7RnO" crossorigin="anonymous">
 <!-- 오류 신고: 아래 '이전·다음' 줄을 가리지 않게 떠 있는 단추는 끄고, 맨 위·막혔어요의 [오류 신고]로 연다 -->
 <script src="https://script.google.com/macros/s/AKfycbxsRD7vRlEP9oKlvlDDPww8cYaDadTTIp1KrqYWSVU5qE5_gUh3bNUskBhHDlXH6FskvA/exec?asset=widget.js" data-app="drive-keeper" data-version="2.1.0" data-color="#2563EB" data-button="false" defer></script>
 <style>
@@ -380,7 +380,7 @@
     <p class="lead">구글 드라이브를 컴퓨터에 연결해 쓰면 편하지만, <b>비밀번호가 없어서</b> 그 컴퓨터를 쓰는 누구나 내 파일을 열고, 고치고, 지울 수 있어요. 드라이브 지킴이는 이 빈틈을 막아 주는 <b>지킴이</b>예요.</p>
     <div class="vs">
       <div class="bad"><h3>😟 드라이브를 그냥 연결하면</h3>• 비밀번호 없이 누구나 열어요<br>• 실수로 지우면 한꺼번에 사라질 수 있어요</div>
-      <div class="good"><h3>😊 드라이브 지킴이를 쓰면</h3>• 비밀번호를 넣어야 열려요<br>• 이 프로그램으로는 파일을 지울 수 없어요<br>• 저장하면 드라이브에 저절로 올라가요</div>
+      <div class="good"><h3>😊 드라이브 지킴이를 쓰면</h3>• 비밀번호를 넣어야 프로그램이 열려요<br>• 이 프로그램으로는 파일을 지우지 못해요<br>• 저장하면 드라이브에 저절로 올라가요</div>
     </div>
     <h2 style="color:var(--blue-d);margin:7mm 0 0">이렇게 따라 해요</h2>
     <div class="toc">
@@ -542,7 +542,7 @@
     <div class="head1"><div class="kicker"></div><h2 tabindex="-1">설치 끝! 프로그램 켜기</h2></div>
     <ol class="do">
       <li><span>‘설치가 끝났어요!’ 창에서 <span class="k">예</span>를 눌러요.</span></li>
-      <li><span>드라이브 지킴이와 <b>시작 도우미</b> 창이 떠요. 그대로 두고 <b>다음 단계</b>로 가요.</span></li>
+      <li><span>잠시 뒤 <b>‘시작하기 전에 꼭 읽어 주세요’</b> 창이 떠요. <b>다음 단계</b>에서 함께 봐요.</span></li>
     </ol>
     <div class="box tip"><b>💡 다음부터는</b>바탕화면의 <b>드라이브 지킴이</b> 아이콘을 두 번 누르면 켜져요. 시작 메뉴에도 있어요.</div>
   </div>
@@ -556,6 +556,22 @@
       <div class="then">바탕화면에 아이콘이 생겨요</div>
       <div class="m desk"><div class="di"><img src="assets/logo.svg" alt="">드라이브 지킴이</div><div class="di" style="opacity:.55"><div style="font-size:2.4em;line-height:1.3">🗑️</div>휴지통</div></div>
     </div>
+  </figure>
+</section>
+
+<section class="step" id="a5" data-ch="install">
+  <div class="txt">
+    <div class="head1"><div class="kicker"></div><h2 tabindex="-1">안내를 읽고 동의하기</h2></div>
+    <p class="say">처음 켤 때 <b>딱 한 번</b>만 나와요. 동의해야 프로그램이 시작돼요.</p>
+    <ol class="do">
+      <li><span>내용을 끝까지 읽어요. <small>무료 프로그램이라 오류로 생긴 손해는 책임질 수 없고, 중요한 자료는 따로 백업해야 한다는 안내예요.</small></span></li>
+      <li><span><b>동의합니다</b> 칸을 눌러 체크해요.</span></li>
+      <li><span>파란 <span class="k">동의하고 시작하기</span>를 눌러요. <b>시작 도우미</b> 창이 뜨면 그대로 두고 다음으로 가요.</span></li>
+    </ol>
+    <div class="box warn"><b>중요한 자료는 꼭 따로 백업해 주세요</b>외장 하드나 USB 등 다른 곳에 사본을 두면 어떤 일이 생겨도 안심이에요.</div>
+  </div>
+  <figure class="fig">
+    <div class="shot" data-spots="disc_check|① 체크|r;disc_agree|② 동의하고 시작하기|b"><img src="assets/shots/disclaimer.png" alt="처음 실행할 때 나오는 안내 창"></div>
   </figure>
 </section>
 

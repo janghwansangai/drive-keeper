@@ -133,6 +133,16 @@ def main() -> int:
         d.trash(f["id"])
 
     # 첫 실행 화면: 열쇠도 계정도 없음
+    w = app_mod.DisclaimerWindow()
+    w.check.invoke()
+    for _ in range(20):
+        w.update()
+        time.sleep(0.02)
+    f = capture(w, "disclaimer")
+    wspot("disc_check", f, w.check)
+    wspot("disc_agree", f, w.agree_btn)
+    w.destroy()
+    del w
     a = app_mod.App(drive_factory=lambda acct, cb: d, start_connect=False)
     a.geometry("1180x760+30+30")
 

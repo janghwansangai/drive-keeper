@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://janghwansangai.github.io/drive-keeper/assets/logo-256.png">
 <meta name="theme-color" content="#13245E">
 <link rel="icon" href="assets/favicon.png">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" integrity="sha384-ei/b2Mz3F5J8nqTvpKS89CkzDCuD7Cc+/F+OsaPUKItzHgLNKnGq3rjtYq/B7RnO" crossorigin="anonymous">
 <script src="https://script.google.com/macros/s/AKfycbxsRD7vRlEP9oKlvlDDPww8cYaDadTTIp1KrqYWSVU5qE5_gUh3bNUskBhHDlXH6FskvA/exec?asset=widget.js" data-app="drive-keeper" data-version="2.1.0" data-color="#2563EB" defer></script>
 <style>
   :root {
@@ -224,7 +224,7 @@
       <p class="sec-lead">어려운 설정 없이 켜기만 하면 지켜 줘요.</p></div>
     <div class="features">
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div><h3>비밀번호 잠금</h3><p>켤 때, 컴퓨터를 몇 분 안 쓸 때, 절전에서 깼을 때 저절로 잠겨요. 단추 하나로 바로 잠글 수도 있어요.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>지우기 차단</h3><p>프로그램이 해킹돼도 드라이브를 지우거나, 휴지통에 넣거나, 공유를 바꾸는 요청을 보낼 수 없어요.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>지우기 차단</h3><p>이 프로그램은 드라이브를 지우거나, 휴지통에 넣거나, 공유를 바꾸는 요청을 보내지 않도록 막혀 있어요. 실수나 프로그램 오류로 지워지는 일을 막아 줘요.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></div><h3>저장하면 자동 업로드</h3><p>한글·Word·Excel에서 Ctrl+S만 누르면 1~3초 안에 드라이브의 원본이 바뀌어요.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></div><h3>타임머신</h3><p>실수로 지운 파일을 되살리고, 잘못 저장한 파일을 예전 내용으로 되돌려요.</p></div>
       <div class="feat"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/></svg></div><h3>여러 계정</h3><p>개인 계정과 학교·회사 계정을 함께 넣고 왼쪽 목록에서 골라 써요. 파일이 섞이지 않아요.</p></div>
@@ -274,13 +274,16 @@
 
 <section class="safe">
   <div class="wrap">
-    <div class="center"><div class="eyebrow" style="color:#8FB6FF">안전 약속</div><h2 class="sec-title">해킹돼도 드라이브가 지워지지 않게</h2>
+    <div class="center"><div class="eyebrow" style="color:#8FB6FF">안전 약속</div><h2 class="sec-title">실수와 오류로 드라이브가 지워지지 않게</h2>
       <p class="sec-lead">안전을 맨 먼저 생각하고 만들었어요.</p></div>
     <div class="promises">
       <div class="prom"><div class="ic">🛡️</div><h3>지우는 요청은 막아요</h3><p>삭제·휴지통 이동·휴지통 비우기·공유 변경 요청은 통신 단계에서 차단돼요.</p></div>
       <div class="prom"><div class="ic">🔑</div><h3>내 열쇠만 써요</h3><p>파일과 계정 정보는 만든 사람에게 가지 않아요. 파일은 내 PC와 내 구글 드라이브 사이에서만 오가요.</p></div>
       <div class="prom"><div class="ic">🔐</div><h3>암호화해서 보관</h3><p>로그인 정보는 이 PC의 내 Windows 계정으로만 풀리게 암호화해요.</p></div>
       <div class="prom"><div class="ic">🦠</div><h3>이상하면 멈춰요</h3><p>여러 파일이 한꺼번에 깨지면 랜섬웨어로 보고 모든 업로드를 멈춰요.</p></div>
+    </div>
+    <div style="max-width:880px;margin:30px auto 0;padding:18px 22px;border:1px solid rgba(255,255,255,.2);border-radius:16px;font-size:15.5px;color:#C9D6FB">
+      <b style="color:#fff">솔직하게 알려 드려요.</b> 컴퓨터 자체가 악성코드에 감염되면 어떤 프로그램도 완전히 지켜 줄 수 없어요. 비밀번호 잠금은 이 프로그램의 화면을 잠그는 기능이라서, 이미 받아 둔 파일 사본은 같은 Windows 계정으로 볼 수 있어요. 다 쓴 파일은 [작업 폴더 정리]로 지우고, Windows 비밀번호와 구글 2단계 인증을 꼭 켜 주세요.
     </div>
   </div>
 </section>
@@ -323,6 +326,7 @@
   <div class="wrap">
     <div><a class="brand" href="#" style="font-size:17px"><img src="assets/logo.svg" alt="" style="width:26px;height:26px">드라이브 지킴이</a>
       <div class="note">만든 사람: 다있쌤 로디</div>
+      <div class="note">드라이브 지킴이는 무료로 나누는 개인 프로젝트이며 오류가 있을 수 있습니다. 사용 중 생기는 자료 손실 등의 손해에 대해 만든 사람은 법이 허용하는 범위에서 책임을 지지 않습니다. 중요한 자료는 반드시 따로 백업해 주세요.</div>
       <div class="note">Google Drive는 Google LLC의 상표입니다. 드라이브 지킴이는 Google과 관련이 없는 개인 프로젝트입니다.</div></div>
     <div class="links"><a href="privacy.html">개인정보처리방침</a><a href="start.html">따라 하기</a><a href="manual/DriveKeeper-Manual.pdf">설명서 PDF</a><a href="#report" data-report>오류 신고</a><a href="https://github.com/janghwansangai/drive-keeper">GitHub</a><a href="https://github.com/janghwansangai/drive-keeper/releases">버전 기록</a></div>
   </div>

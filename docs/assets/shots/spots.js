@@ -1,5 +1,17 @@
 // tools/make_screenshots.py가 만든 파일: 화면 사진 속 단추 자리(%)
 window.SPOTS = {
+ "disc_check": [
+  3.81,
+  77.69,
+  45.06,
+  6.05
+ ],
+ "disc_agree": [
+  69.77,
+  87.15,
+  26.41,
+  9.26
+ ],
  "setup_guide": [
   72.91,
   27.76,

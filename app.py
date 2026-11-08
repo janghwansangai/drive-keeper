@@ -371,9 +371,13 @@ def _default_revoke(creds_json: str) -> None:
 DANGEROUS_EXT = {".exe", ".msi", ".msp", ".bat", ".cmd", ".com", ".scr", ".pif", ".cpl", ".js", ".jse",
                  ".vbs", ".vbe", ".wsf", ".wsh", ".hta", ".ps1", ".psm1", ".lnk", ".reg", ".jar", ".msc",
                  ".url", ".scf", ".appref-ms", ".application", ".gadget", ".chm", ".dll", ".sys", ".inf",
-                 ".iso", ".img", ".vhd", ".vhdx"}
+                 ".iso", ".img", ".vhd", ".vhdx", ".msu", ".mst", ".cab", ".ws", ".wsc", ".sct", ".shb", ".shs",
+                 ".psd1", ".ps1xml", ".psc1", ".hlp", ".ins", ".isp", ".jnlp", ".xbap", ".py", ".pyw", ".pyz",
+                 ".xll", ".wll", ".mde", ".accde", ".ade", ".adp", ".mda", ".rdp", ".theme", ".themepack",
+                 ".deskthemepack", ".library-ms", ".searchconnector-ms", ".settingcontent-ms",
+                 ".diagcab", ".diagpkg", ".diagcfg", ".appx", ".appxbundle", ".msix", ".msixbundle", ".appinstaller"}
 # 매크로가 든 오피스 파일: '인터넷에서 받은 파일' 표시를 붙여 오피스가 매크로를 막게 한다
-MACRO_EXT = {".docm", ".dotm", ".xlsm", ".xltm", ".xlam", ".pptm", ".potm", ".ppsm", ".ppam"}
+MACRO_EXT = {".docm", ".dotm", ".xlsm", ".xltm", ".xlam", ".xla", ".pptm", ".potm", ".ppsm", ".ppam", ".ppa"}
 
 
 def mark_internet_zone(path: Path) -> None:
@@ -2019,6 +2023,8 @@ class App(tk.Tk):
         self.help_menu.add_command(label="업데이트 확인", command=lambda: self.check_update(manual=True))
         self.help_menu.add_command(label="홈페이지 열기", command=lambda: webbrowser.open(config.SITE_URL))
         self.help_menu.add_command(label="드라이브 지킴이 정보", command=lambda: AboutDialog(self))
+        self.help_menu.add_command(label="면책 안내 다시 보기",
+                                   command=lambda: self._dialog("info", "면책 안내", disclaimer_text()))
 
         # ── 맨 아래: 상태 표시줄 (알림 글 / 필요할 때 나오는 단추 / 지금 계정·버전) ──
         bar = tk.Frame(self, bg=T.SURFACE)
@@ -2409,8 +2415,8 @@ class App(tk.Tk):
             else:
                 self._dialog("info", "잠금", "잠금이 꺼져 있습니다. '보안 설정'에서 '잠금 사용'을 켜 주세요.")
             return
-        for dlg in (self._sec_dialog, self._tm_dialog, self._update_dialog):   # 잠금 화면 위에 남는 창은 닫는다
-            if dlg is not None:
+        for dlg in self.winfo_children():   # 파일·계정 이름이 보일 수 있으니 잠금 화면 위에 남는 창은 모두 닫는다
+            if isinstance(dlg, tk.Toplevel):
                 try:
                     dlg.destroy()
                 except tk.TclError:
@@ -3182,7 +3188,9 @@ class App(tk.Tk):
             self.open_file(target, account_id)
 
     def open_in_browser(self, meta: dict) -> None:
-        url = meta.get("webViewLink") or f"https://drive.google.com/open?id={meta['id']}"
+        url = str(meta.get("webViewLink") or "")
+        if not url.startswith("https://"):   # 구글 주소가 아닌 것(프로그램 실행 주소 등)은 열지 않는다
+            url = f"https://drive.google.com/open?id={meta['id']}"
         self.set_status(f"브라우저에서 엽니다: {meta.get('name')}")
         webbrowser.open(url)
 
@@ -3471,7 +3479,7 @@ class App(tk.Tk):
                     rows.append((acct, r))
         wanted = []
         for acct, r in rows:
-            iid = "t" + hashlib.sha1((acct.id + "|" + r["key"]).encode("utf-8")).hexdigest()[:16]
+            iid = "t" + hashlib.sha1((acct.id + "|" + r["key"]).encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
             wanted.append(iid)
             self.track_keys[iid] = (acct.id, r["key"])
             old = self.track_status.get(iid)
@@ -3714,6 +3722,118 @@ class App(tk.Tk):
         self.destroy()
 
 
+DISCLAIMER_TITLE = "시작하기 전에 꼭 읽어 주세요"
+DISCLAIMER_INTRO = "드라이브 지킴이는 개인이 만들어 무료로 나누는 프로그램이에요."
+DISCLAIMER_POINTS = (
+    "오류가 있을 수 있어요. 프로그램 오류, 정전, 해킹, 바이러스, 사용 실수, 구글 서비스 변경 등으로 "
+    "파일이 사라지거나 손상될 수 있고, 언제나 정상으로 동작한다고 보장하지 않아요.",
+    "무료로 제공하므로, 이 프로그램을 쓰다가 생기는 자료 손실이나 업무 차질 등의 손해에 대해 "
+    "만든 사람은 법이 허용하는 범위에서 책임을 지지 않아요.",
+    "중요한 자료는 반드시 다른 곳에 따로 백업하고, 필요한 보안 조치도 직접 해 주세요. "
+    "(외장 저장장치에 복사, Windows 로그인 비밀번호, 구글 2단계 인증 등)",
+    "학교나 회사의 자료는 소속 기관의 규정을 먼저 확인해 주세요.",
+)
+
+
+def disclaimer_text() -> str:
+    return DISCLAIMER_INTRO + "\n\n" + "\n\n".join("• " + p for p in DISCLAIMER_POINTS)
+
+
+class DisclaimerWindow(tk.Tk):
+    """처음 실행할 때 한 번 보여 주는 면책 안내. 동의해야 프로그램이 켜진다."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.accepted = False
+        self.title(f"{config.APP_TITLE} - 사용 전 안내")
+        self.configure(bg=T.BG)
+        self.resizable(False, False)
+        s = max(1.0, self.winfo_fpixels("1i") / 96)
+        family = "Malgun Gothic"
+        head = tk.Frame(self, bg=T.SURFACE, padx=int(26 * s), pady=int(18 * s))
+        head.pack(fill="x")
+        self._logo = logo_image(self, int(44 * s))
+        if self._logo is not None:
+            tk.Label(head, image=self._logo, bg=T.SURFACE).pack(side="left", padx=(0, int(14 * s)))
+            try:
+                self.iconphoto(True, self._logo)
+            except tk.TclError:
+                pass
+        tk.Label(head, text=DISCLAIMER_TITLE, font=(family, 17, "bold"), bg=T.SURFACE, fg=T.TEXT).pack(side="left")
+        tk.Frame(self, bg=T.BORDER, height=1).pack(fill="x")
+        body = tk.Frame(self, bg=T.BG, padx=int(26 * s), pady=int(18 * s))
+        body.pack(fill="both", expand=True)
+        tk.Label(body, text=DISCLAIMER_INTRO, font=(family, 12, "bold"), bg=T.BG, fg=T.TEXT,
+                 justify="left").pack(anchor="w", pady=(0, int(10 * s)))
+        card = tk.Frame(body, bg=T.WARN_BG, highlightthickness=1, highlightbackground=T.WARN_LINE,
+                        padx=int(16 * s), pady=int(12 * s))
+        card.pack(fill="x")
+        for point in DISCLAIMER_POINTS:
+            row = tk.Frame(card, bg=T.WARN_BG)
+            row.pack(fill="x", pady=int(5 * s))
+            tk.Label(row, text="•", font=(family, 11, "bold"), bg=T.WARN_BG, fg=T.WARN_INK).pack(side="left", anchor="n")
+            tk.Label(row, text=point, font=(family, 11), bg=T.WARN_BG, fg=T.TEXT, wraplength=int(600 * s),
+                     justify="left").pack(side="left", anchor="w", padx=(int(6 * s), 0))
+        self.agreed = tk.BooleanVar(value=False)
+        self.check = tk.Checkbutton(body, text="위 내용을 읽고 이해했으며, 동의합니다.", variable=self.agreed,
+                                    command=self._sync, font=(family, 12, "bold"), bg=T.BG, fg=T.TEXT,
+                                    activebackground=T.BG, selectcolor=T.SURFACE, cursor="hand2")
+        self.check.pack(anchor="w", pady=(int(14 * s), 0))
+        foot = tk.Frame(self, bg=T.BG, padx=int(26 * s))
+        foot.pack(fill="x", pady=(0, int(18 * s)))
+        self.agree_btn = tk.Button(foot, text="동의하고 시작하기", font=(family, 12, "bold"), bd=0, cursor="hand2",
+                                   bg=T.PRIMARY, fg="#FFFFFF", activebackground=T.PRIMARY_DARK,
+                                   activeforeground="#FFFFFF", disabledforeground="#FFFFFF",
+                                   padx=int(22 * s), pady=int(9 * s), command=self._agree)
+        self.agree_btn.pack(side="right")
+        self.quit_btn = tk.Button(foot, text="동의하지 않음 (끝내기)", font=(family, 11), bd=0, cursor="hand2",
+                                  bg=T.BORDER, fg=T.TEXT, activebackground=T.BORDER_STRONG,
+                                  padx=int(16 * s), pady=int(9 * s), command=self.destroy)
+        self.quit_btn.pack(side="right", padx=int(10 * s))
+        self._sync()
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() - self.winfo_reqwidth()) // 2
+        y = max(0, (self.winfo_screenheight() - self.winfo_reqheight()) // 2)
+        self.geometry(f"+{x}+{y}")
+        self.protocol("WM_DELETE_WINDOW", self.destroy)   # 창을 닫으면 동의하지 않은 것으로 본다
+        self.lift()
+        self.check.focus_set()
+
+    def _sync(self) -> None:
+        on = self.agreed.get()
+        self.agree_btn.configure(state="normal" if on else "disabled", bg=T.PRIMARY if on else T.FAINT)
+
+    def _agree(self) -> None:
+        if self.agreed.get():
+            self.accepted = True
+            self.destroy()
+
+
+def ask_disclaimer() -> bool:
+    win = DisclaimerWindow()
+    win.mainloop()
+    return win.accepted
+
+
+def ensure_disclaimer(ask=ask_disclaimer) -> bool:
+    """동의한 적이 있으면 바로 True. 처음이면 안내를 보여 주고, 동의를 기록한다. 동의하지 않으면 False."""
+    if config.disclaimer_accepted():
+        return True
+    try:
+        accepted = ask()
+    except Exception:
+        log.exception("면책 안내를 보여 주지 못함")
+        return False
+    if not accepted:
+        return False
+    try:
+        config.accept_disclaimer()
+    except OSError:   # 기록하지 못해도 방금 동의했으니 이번에는 켠다 (다음에 한 번 더 묻게 됨)
+        log.exception("면책 안내 동의 기록 실패")
+    log.info("면책 안내에 동의함")
+    return True
+
+
 def main() -> None:
     enable_dpi_awareness()
     try:
@@ -3739,6 +3859,10 @@ def main() -> None:
                 r.destroy()
             except Exception:
                 pass
+        return
+    if not ensure_disclaimer():
+        log.info("면책 안내에 동의하지 않아 종료")
+        logging.shutdown()
         return
     try:
         app = App()

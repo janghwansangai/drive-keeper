@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import gc
 import io
 import json
 import os
@@ -234,6 +235,58 @@ class TestAccountStore(TempBase):
 
 
 # ======================= 통신 보안 (삭제 차단) =======================
+class TestDisclaimer(TempBase):
+    def test_shown_once_and_remembered(self):
+        asked = []
+        self.assertTrue(app_mod.ensure_disclaimer(lambda: asked.append(1) or True))
+        self.assertTrue(app_mod.ensure_disclaimer(lambda: asked.append(2) or False))
+        self.assertEqual(asked, [1])
+
+    def test_decline_is_not_remembered(self):
+        self.assertFalse(app_mod.ensure_disclaimer(lambda: False))
+        self.assertFalse(config.disclaimer_accepted())
+
+    def test_failed_window_does_not_start(self):
+        def boom():
+            raise RuntimeError("x")
+        self.assertFalse(app_mod.ensure_disclaimer(boom))
+
+    def test_corrupt_record_asks_again(self):
+        config.BASE_DIR.mkdir(parents=True, exist_ok=True)
+        (config.BASE_DIR / "disclaimer.json").write_text("{broken", encoding="utf-8")
+        self.assertFalse(config.disclaimer_accepted())
+
+    def test_window_needs_checkbox(self):
+        win = app_mod.DisclaimerWindow()
+        try:
+            self.assertEqual(str(win.agree_btn["state"]), "disabled")
+            win._agree()
+            self.assertFalse(win.accepted)
+            win.check.invoke()
+            self.assertEqual(str(win.agree_btn["state"]), "normal")
+            win.agree_btn.invoke()
+            self.assertTrue(win.accepted)
+        finally:
+            try:
+                win.destroy()
+            except Exception:
+                pass
+            del win
+            gc.collect()
+
+
+class TestNameSafety(unittest.TestCase):
+    def test_drive_file_cannot_take_reserved_names(self):
+        self.assertNotEqual(sync.safe_filename(sync.SIDECAR).lower(), sync.SIDECAR)
+        self.assertNotEqual(sync.safe_filename(".GDE-META.JSON").lower(), sync.SIDECAR)
+        self.assertFalse(sync.safe_filename("a.gde-part").lower().endswith(sync.PART_SUFFIX))
+        self.assertFalse(sync.safe_filename("a.gde-del").lower().endswith(sync.DEL_SUFFIX))
+
+    def test_script_like_files_do_not_open(self):
+        for ext in (".xll", ".diagcab", ".library-ms", ".appinstaller", ".rdp"):
+            self.assertIn(ext, app_mod.DANGEROUS_EXT)
+
+
 class TestLoginScope(unittest.TestCase):
     """구글 권한 화면에서 드라이브 체크를 빼고 [계속]을 누르면 알아듣기 쉬운 안내를 보여 준다."""
 
@@ -300,6 +353,39 @@ class TestRequestGuard(unittest.TestCase):
     def setUp(self) -> None:
         import drive_client
         self.dc = drive_client
+
+    def test_bypass_attempts_are_blocked(self):
+        api = "https://www.googleapis.com"
+        multipart = {"content-type": 'multipart/related; boundary="BB"'}
+
+        def part(meta: bytes) -> bytes:
+            return b'--BB\r\ncontent-type: application/json\r\n\r\n' + meta + b'\r\n--BB\r\n\r\nx\r\n--BB--'
+        blocked = [
+            (f"{api}/upload/drive/v3/files/a?uploadType=media", "POST", b"x", {"X-HTTP-Method-Override": "DELETE"}),
+            (f"{api}/drive/v3/files/a", "GET", None, {"x-http-method": "DELETE"}),
+            (f"{api}/upload/drive/v3/files/a?uploadType=media&removeParents=p&addParents=q", "PATCH", b"x", {}),
+            (f"{api}/upload/drive/v3/files/a?uploadType=multipart", "PATCH", part(b'{"tr\\u0061shed": true}'), multipart),
+            (f"{api}/upload/drive/v3/files/a?uploadType=multipart", "PATCH", part(b'{"name": "x"}'), multipart),
+            (f"{api}/upload/drive/v3/files?uploadType=multipart", "POST", part(b'{"name": "x", "trashed": true}'), multipart),
+            (f"{api}/upload/drive/v3/files?uploadType=multipart", "POST", part(b"not json"), multipart),
+            (f"{api}/upload/drive/v3/files?uploadType=resumable", "POST", b'{"writersCanShare": true}',
+             {"content-type": "application/json"}),
+            (f"{api}/upload/drive/v3/files/a", "PATCH", b"{}", {}),
+            (f"{api}/upload/drive/v3/files/a/permissions?uploadType=media", "POST", b"{}", {}),
+            (f"{api}/drive/v3/files/a?addParents=q", "PATCH", b'{"trashed": false}', {}),
+            ("https://evil.example.com/drive/v3/files", "GET", None, {}),
+            ("http://www.googleapis.com/drive/v3/files", "GET", None, {}),
+        ]
+        for args in blocked:
+            with self.assertRaises(self.dc.BlockedRequest, msg=str(args[:2])):
+                self.dc.check_request(*args)
+
+    def test_user_json_file_is_not_mistaken_for_metadata(self):
+        """사용자가 저장한 .json 파일 내용에 "trashed"가 있어도 저장이 막히면 안 된다."""
+        self.dc.check_request("https://www.googleapis.com/upload/drive/v3/files/a?uploadType=media", "PATCH",
+                              b'{"trashed": true}', {"content-type": "application/json"})
+        self.dc.check_request("https://www.googleapis.com/upload/drive/v3/files/a?uploadType=resumable&upload_id=z",
+                              "PUT", b'{"trashed": true}', {"content-type": "application/json"})
 
     def test_allowlist(self):
         ok = [("https://www.googleapis.com/drive/v3/files?q=x", "GET", None, {}),

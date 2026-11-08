@@ -21,7 +21,7 @@ import threading
 import time
 from pathlib import Path
 from typing import Callable
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import google_auth_httplib2
 import httplib2
@@ -79,22 +79,50 @@ def _header(headers: dict | None, name: str) -> str:
     return ""
 
 
-def _metadata_part(body, headers) -> bytes | None:
-    """업로드 요청에서 파일 정보(JSON) 부분만 꺼낸다. 파일 내용만 보내는 요청이면 None."""
-    if body is None:
+def _as_bytes(body) -> bytes:
+    return bytes(body) if isinstance(body, (bytes, bytearray)) else str(body or "").encode("utf-8", "replace")
+
+
+def _upload_metadata(query: dict, body, headers) -> dict | None:
+    """업로드 요청의 파일 정보(JSON). 파일 내용만 보내는 요청이면 None.
+
+    업로드 방식(uploadType)으로만 판단한다. Content-Type으로 판단하면 사용자가 저장한 .json 파일의
+    내용을 파일 정보로 착각하게 된다. 읽을 수 없는 요청은 막는다.
+    """
+    kind = (query.get("uploadType") or [""])[0]
+    if "upload_id" in query or kind == "media":
         return None
-    data = body if isinstance(body, (bytes, bytearray)) else str(body).encode("utf-8", "replace")
-    ctype = _header(headers, "content-type").lower()
-    if ctype.startswith("application/json"):
-        return bytes(data)
-    if ctype.startswith("multipart/related") and "boundary=" in ctype:
-        boundary = _header(headers, "content-type").split("boundary=", 1)[1].strip().strip('"')
-        parts = bytes(data).split(b"--" + boundary.encode("ascii", "replace"))
-        return parts[1] if len(parts) > 1 else bytes(data[:4096])
-    return None
+    data = _as_bytes(body)
+    if kind == "multipart":
+        ctype = _header(headers, "content-type")
+        if "boundary=" not in ctype:
+            raise BlockedRequest("보안상 허용되지 않은 요청: 읽을 수 없는 업로드")
+        boundary = ctype.split("boundary=", 1)[1].strip().strip('"').encode("ascii", "replace")
+        parts = data.split(b"--" + boundary)
+        head, sep, data = parts[1].partition(b"\r\n\r\n") if len(parts) > 1 else (b"", b"", b"")
+        if not sep and len(parts) > 1:
+            head, sep, data = parts[1].partition(b"\n\n")
+        if not sep:
+            raise BlockedRequest("보안상 허용되지 않은 요청: 읽을 수 없는 업로드")
+    elif kind != "resumable":
+        raise BlockedRequest(f"보안상 허용되지 않은 요청: 업로드 방식 {kind!r}")
+    if not data.strip():
+        return {}
+    try:
+        meta = json.loads(data.decode("utf-8"))
+    except ValueError:
+        raise BlockedRequest("보안상 허용되지 않은 요청: 읽을 수 없는 파일 정보") from None
+    if not isinstance(meta, dict):
+        raise BlockedRequest("보안상 허용되지 않은 요청: 읽을 수 없는 파일 정보")
+    return meta
 
 
+_API_HOST = "www.googleapis.com"
+_METHOD_OVERRIDES = ("x-http-method-override", "x-http-method", "x-method-override")
 _FILE_PATH = re.compile(r"^/drive/v3/files/[A-Za-z0-9_-]+$")
+_UPLOAD_PATH = re.compile(r"^/upload/drive/v3/files(/[A-Za-z0-9_-]+)?$")
+_WRITE_PARAMS = {"uploadType", "upload_id", "fields", "alt", "supportsAllDrives", "prettyPrint"}  # addParents 등은 안 됨
+_NEW_FILE_FIELDS = {"name", "parents", "mimeType"}
 
 
 def _is_untrash(body) -> bool:
@@ -110,17 +138,28 @@ def _is_untrash(body) -> bool:
 
 def check_request(uri: str, method: str, body=None, headers=None) -> None:
     """허용 목록: 읽기(GET), 파일 올리기·새 파일 만들기(/upload/...), 휴지통에서 꺼내기.
-    삭제·휴지통 이동·휴지통 비우기·공유 변경 등 나머지는 모두 막는다."""
+    삭제·휴지통 이동·휴지통 비우기·공유 변경·폴더 옮기기 등 나머지는 모두 막는다."""
     m = (method or "GET").upper()
-    path = urlsplit(uri).path
+    url = urlsplit(uri)
+    path = url.path
+    if url.scheme != "https" or url.hostname != _API_HOST:   # 로그인 정보가 구글 드라이브 주소 밖으로 나가지 않게
+        raise BlockedRequest(f"보안상 허용되지 않은 주소: {url.hostname}")
+    if any(_header(headers, name) for name in _METHOD_OVERRIDES):   # POST로 보내고 DELETE로 처리시키는 우회
+        raise BlockedRequest("보안상 허용되지 않은 요청: 요청 종류 바꾸기")
     if m == "GET":
         return
-    if m in ("POST", "PATCH", "PUT") and path.startswith("/upload/drive/v3/files"):
-        meta = _metadata_part(body, headers)
-        if meta is not None and b'"trashed"' in meta:
-            raise BlockedRequest("보안상 허용되지 않은 요청: 휴지통 이동")
+    query = parse_qs(url.query, keep_blank_values=True)
+    upload = _UPLOAD_PATH.match(path)
+    if upload and m in ("POST", "PATCH", "PUT") and set(query) <= _WRITE_PARAMS:
+        existing = upload.group(1) is not None
+        if m == "POST" and existing:
+            raise BlockedRequest(f"보안상 허용되지 않은 요청: {m} {path}")
+        meta = _upload_metadata(query, body, headers)
+        # 이미 있는 파일은 내용만 바꾼다. 새 파일은 이름·폴더·형식만 정한다.
+        if meta and (existing or not set(meta) <= _NEW_FILE_FIELDS):
+            raise BlockedRequest("보안상 허용되지 않은 요청: 파일 정보 변경")
         return
-    if m == "PATCH" and _FILE_PATH.match(path) and _is_untrash(body):
+    if m == "PATCH" and _FILE_PATH.match(path) and _is_untrash(body) and set(query) <= _WRITE_PARAMS:
         return  # 타임머신: 지운 파일을 휴지통에서 되살리기 (지우는 방향은 불가)
     raise BlockedRequest(f"보안상 허용되지 않은 요청: {m} {path}")
 
@@ -459,7 +498,7 @@ class DriveClient:
         part = dest.with_name(dest.name + PART_SUFFIX)
 
         def work(s):
-            h = hashlib.md5()
+            h = hashlib.md5(usedforsecurity=False)
             with open(part, "wb") as fh:
                 downloader = MediaIoBaseDownload(_HashingWriter(fh, h), make(s), chunksize=CHUNK)
                 done = False
@@ -580,7 +619,7 @@ class DriveClient:
         rev_id = revision["id"]
 
         def work(s):
-            h = hashlib.md5()
+            h = hashlib.md5(usedforsecurity=False)
             with open(part, "wb") as fh:
                 req = s.revisions().get_media(fileId=file_id, revisionId=rev_id)
                 downloader = MediaIoBaseDownload(_HashingWriter(fh, h), req, chunksize=CHUNK)

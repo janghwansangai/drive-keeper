@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -60,9 +61,11 @@ def check_latest(timeout: float = 6.0) -> dict | None:
     asset = next((a for a in data.get("assets") or [] if a.get("name") == ASSET_NAME), {})
     zip_url = str(asset.get("browser_download_url") or "")
     digest = str(asset.get("digest") or "")
-    return {"version": tag.lstrip("vV"), "url": data.get("html_url") or config.RELEASES_URL,
+    page = str(data.get("html_url") or "")
+    return {"version": tag.lstrip("vV"),
+            "url": page if page.startswith(f"https://github.com/{config.GITHUB_REPO}/") else config.RELEASES_URL,
             "notes": str(data.get("body") or "")[:2000],
-            "zip_url": zip_url if zip_url.startswith(DOWNLOAD_PREFIX) else "",
+            "zip_url": zip_url if zip_url.startswith(DOWNLOAD_PREFIX) and digest.startswith("sha256:") else "",
             "zip_size": int(asset.get("size") or 0),
             "sha256": digest[7:].lower() if digest.startswith("sha256:") else ""}
 
@@ -119,8 +122,8 @@ def download(info: dict, progress=None) -> Path:
                 progress(got, total)
     if total and got != total:
         raise UpdateError("새 버전을 끝까지 받지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.")
-    if info.get("sha256") and h.hexdigest() != info["sha256"]:
-        raise UpdateError("받은 파일이 GitHub에 올라온 파일과 달라요. 설치하지 않았어요.")
+    if not info.get("sha256") or not hmac.compare_digest(h.hexdigest(), str(info["sha256"]).lower()):
+        raise UpdateError("받은 파일이 GitHub에 올라온 파일과 같은지 확인하지 못했어요. 설치하지 않았어요.")
     out = root / "files"
     try:
         with zipfile.ZipFile(zpath) as z:
