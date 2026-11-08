@@ -19,3 +19,6 @@ build/
 dist/
 release/
 *.spec
+
+# 만든 영상 (용량이 커서 저장소에 넣지 않음)
+영상/
